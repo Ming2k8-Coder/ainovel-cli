@@ -17,6 +17,7 @@ import (
 	"github.com/voocel/ainovel-cli/internal/agents"
 	"github.com/voocel/ainovel-cli/internal/agents/ctxpack"
 	"github.com/voocel/ainovel-cli/internal/arbiter"
+	"github.com/voocel/ainovel-cli/internal/authorship"
 	"github.com/voocel/ainovel-cli/internal/bootstrap"
 	"github.com/voocel/ainovel-cli/internal/domain"
 	"github.com/voocel/ainovel-cli/internal/flow"
@@ -409,6 +410,14 @@ func (h *Host) StartPrepared(rawRequirement string) error {
 		return fmt.Errorf("记录启动裁定: %w", err)
 	}
 
+	_, _ = h.store.Authorship.RecordContribution(
+		authorship.TypePremiseSeed,
+		"Author",
+		"Khởi tạo đề tài và tiền đề nghệ thuật của tác phẩm",
+		rawRequirement,
+		0,
+	)
+
 	h.emitEvent(Event{Time: time.Now(), Category: "SYSTEM",
 		Summary: fmt.Sprintf("开始创作（规划师: %s——%s）", decision.Planner, decision.Reason), Level: "info"})
 	if !h.startEngine(&flow.Instruction{Agent: decision.Planner, Task: decision.Task, Reason: decision.Reason}) {
@@ -629,6 +638,18 @@ func (h *Host) doIntervention(text string, restart bool) error {
 		return arbiter.DecideIntervention(h.runCtx, h.arbiterModel(),
 			h.bundle.Prompts.ArbiterIntervention, facts, text)
 	})
+
+	currentCh := 0
+	if prog, _ := h.store.Progress.Load(); prog != nil {
+		currentCh = prog.NextChapter()
+	}
+	_, _ = h.store.Authorship.RecordContribution(
+		authorship.TypeCreativeSteer,
+		"Author",
+		"Can thiệp định hướng sáng tạo và mạch truyện",
+		text,
+		currentCh,
+	)
 
 	rec := storepkg.DecisionRecord{Kind: "intervention", Decider: "arbiter", Input: text,
 		Reason: decision.Reason, DurationMs: time.Since(start).Milliseconds()}
@@ -853,6 +874,13 @@ func (h *Host) AdvanceOneChapter() error {
 	if err := h.store.RunMeta.GrantAdvancePermit(target); err != nil {
 		return err
 	}
+	_, _ = h.store.Authorship.RecordContribution(
+		authorship.TypeChapterApproval,
+		"Author",
+		fmt.Sprintf("Nghiệm thu và cấp phép phát hành chương %d", target),
+		"",
+		target,
+	)
 	h.emitEvent(Event{Time: time.Now(), Category: "SYSTEM",
 		Summary: fmt.Sprintf("已放行第 %d 章；该章提交后会先完成必要的评审与弧/卷结构维护，再次等待放行", target), Level: "info"})
 	h.refreshWriterRestore()
@@ -1981,3 +2009,13 @@ func (h *Host) continueAfterImport(opts imp.Options) bool {
 func (h *Host) Export(ctx context.Context, opts exp.Options) (*exp.Result, error) {
 	return exp.Run(ctx, exp.Deps{Store: h.store}, opts)
 }
+
+// ExportCopyrightReport xuất báo cáo hồ sơ bản quyền tác giả từ sổ cái authorship.
+func (h *Host) ExportCopyrightReport(primaryAuthor string) (string, error) {
+	bookTitle := "Tác phẩm"
+	if book, err := h.store.Book.Load(); err == nil && book != nil && book.Title != "" {
+		bookTitle = book.Title
+	}
+	return h.store.Authorship.GenerateCopyrightReport(bookTitle, primaryAuthor)
+}
+

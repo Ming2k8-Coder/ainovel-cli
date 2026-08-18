@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/voocel/ainovel-cli/assets"
+	"github.com/voocel/ainovel-cli/internal/authorship"
 	"github.com/voocel/ainovel-cli/internal/bootstrap"
 	"github.com/voocel/ainovel-cli/internal/entry/headless"
 	"github.com/voocel/ainovel-cli/internal/entry/startup"
@@ -27,9 +28,14 @@ var (
 var headlessMode bool
 
 func main() {
-	// Lệnh con (subcommand) được chặn trước khi phân tích cờ (flag) thông thường: eval là công cụ đánh giá ngoại tuyến độc lập.
-	if len(os.Args) > 1 && os.Args[1] == "eval" {
-		os.Exit(eval.Command(os.Args[2:]))
+	// Lệnh con (subcommand) được chặn trước khi phân tích cờ (flag) thông thường:
+	if len(os.Args) > 1 {
+		switch os.Args[1] {
+		case "eval":
+			os.Exit(eval.Command(os.Args[2:]))
+		case "copyright", "authorship":
+			os.Exit(authorship.Command(os.Args[2:]))
+		}
 	}
 
 	opts, args, err := parseCLIOptions(os.Args[1:])

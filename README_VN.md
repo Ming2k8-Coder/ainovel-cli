@@ -1,4 +1,4 @@
-# ainovel-cli (Động Cơ Tự Động Sáng Tác Tiểu Thuyết Bằng AI)
+# ainovel-cli (Công cụ Tự Động Sáng Tác Tiểu Thuyết Bằng AI)
 
 **ainovel-cli** là hệ thống AI sáng tác tiểu thuyết dài tập hoàn toàn tự động. Kiến trúc vận hành kết hợp giữa **Động cơ điều phối định tính (Deterministic Engine)** bằng mã nguồn chuẩn xác và **Mô hình ngôn ngữ lớn (LLM)** được kích hoạt đúng lúc đúng chỗ: Engine chịu trách nhiệm điều phối luồng công việc dựa trên trạng thái thực tế đến 3 Tác tử sáng tác độc lập (**Architect** / **Writer** / **Editor**), đồng thời tham vấn **Arbiter** (Trọng tài) khi cần đưa ra các phán quyết ngữ nghĩa then chốt.
 
