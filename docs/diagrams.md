@@ -42,12 +42,16 @@ flowchart TB
     UI --> HostEngine
     Engine --> Router
     Router -->|Tra bảng trạng thái| Engine
-    Engine -->|Chỉ thị công việc| Architect & Writer & Editor
+    Engine -->|Chỉ thị công việc| Architect
+    Engine -->|Chỉ thị công việc| Writer
+    Engine -->|Chỉ thị công việc| Editor
     Engine -->|Tình huống ngữ nghĩa mở| Arbiter
     Arbiter -->|Phán quyết cấu trúc| Engine
     Gate -->|Cho phép / Tạm dừng| Engine
 
-    Architect & Writer & Editor -->|Gọi Tools: IO + Checkpoints| StoreLayer
+    Architect -->|Gọi Tools: IO + Checkpoints| StoreLayer
+    Writer -->|Gọi Tools: IO + Checkpoints| StoreLayer
+    Editor -->|Gọi Tools: IO + Checkpoints| StoreLayer
     StoreLayer -.->|LoadState facts| Router
     StoreLayer -.->|CollectInterventionFacts| Arbiter
     Engine -.->|Cập nhật sự kiện| Observer
@@ -114,15 +118,15 @@ Mỗi chương được tác tử Writer tự chủ thực hiện qua 6 bước 
 
 ```mermaid
 flowchart TD
-    Start([Nhận lệnh viết Chương N]) --> Step1[1. novel_context<br/>Nạp tóm tắt, phục bút, nhân vật, văn phong, gợi ý liên quan]
-    Step1 --> Step2[2. read_chapter<br/>Đọc lại 800 từ cuối chương N-1 để bắt đúng nhịp văn]
-    Step2 --> Step3[3. plan_chapter<br/>Lập hợp đồng chương: mục tiêu, nhịp kịch tính, cảm xúc, xung đột]
-    Step3 --> Step4[4. draft_chapter<br/>Chấp bút sáng tác toàn bộ văn xuôi cho chương]
-    Step4 --> Step5[5. check_consistency<br/>Đối chiếu bản thảo với thiết lập thế giới và ràng buộc nhân vật]
-    Step5 --> CheckPass{Vượt qua<br/>kiểm tra?}
-    CheckPass -- Không đạt --> Step4
-    CheckPass -- Đạt --> Step6[6. commit_chapter<br/>Nộp bản thảo chính thức, lưu Saga PendingCommit, cập nhật timeline]
-    Step6 --> Done([Hoàn thành chương N])
+    Start(["Nhận lệnh viết Chương N"]) --> Step1["1. novel_context<br/>Nạp tóm tắt, phục bút, nhân vật, văn phong, gợi ý liên quan"]
+    Step1 --> Step2["2. read_chapter<br/>Đọc lại 800 từ cuối chương N-1 để bắt đúng nhịp văn"]
+    Step2 --> Step3["3. plan_chapter<br/>Lập hợp đồng chương: mục tiêu, nhịp kịch tính, cảm xúc, xung đột"]
+    Step3 --> Step4["4. draft_chapter<br/>Chấp bút sáng tác toàn bộ văn xuôi cho chương"]
+    Step4 --> Step5["5. check_consistency<br/>Đối chiếu bản thảo với thiết lập thế giới và ràng buộc nhân vật"]
+    Step5 --> CheckPass{"Vượt qua<br/>kiểm tra?"}
+    CheckPass -- "Không đạt" --> Step4
+    CheckPass -- "Đạt" --> Step6["6. commit_chapter<br/>Nộp bản thảo chính thức, lưu Saga PendingCommit, cập nhật timeline"]
+    Step6 --> Done(["Hoàn thành chương N"])
 
     classDef step fill:#e1f5fe,stroke:#0288d1,stroke-width:2px;
     classDef finish fill:#e8f5e9,stroke:#388e3c,stroke-width:2px;
@@ -179,18 +183,18 @@ Quy trình nén ngữ cảnh tự động từ chi phí thấp đến cao khi du
 
 ```mermaid
 flowchart TD
-    Trigger([Token hội thoại > Ngưỡng Context Budget]) --> Stage1[1. ToolResultMicrocompact<br/>Rút gọn kết quả công cụ cũ thành text giữ chỗ<br/><b>Chi phí: 0 Token</b>]
-    Stage1 --> Check1{Dung lượng<br/>đã an toàn?}
-    Check1 -- Có --> Safe([Tiếp tục sáng tác])
-    Check1 -- Chưa --> Stage2[2. LightTrim<br/>Cắt ngắn các đoạn văn bản quá dài từ vòng trước<br/><b>Chi phí: 0 Token</b>]
+    Trigger(["Token hội thoại > Ngưỡng Context Budget"]) --> Stage1["1. ToolResultMicrocompact<br/>Rút gọn kết quả công cụ cũ thành text giữ chỗ<br/><b>Chi phí: 0 Token</b>"]
+    Stage1 --> Check1{"Dung lượng<br/>đã an toàn?"}
+    Check1 -- "Có" --> Safe(["Tiếp tục sáng tác"])
+    Check1 -- "Chưa" --> Stage2["2. LightTrim<br/>Cắt ngắn các đoạn văn bản quá dài từ vòng trước<br/><b>Chi phí: 0 Token</b>"]
     
-    Stage2 --> Check2{Dung lượng<br/>đã an toàn?}
-    Check2 -- Có --> Safe
-    Check2 -- Chưa --> Stage3[3. StoreSummaryCompact (Độc quyền Writer)<br/>Nạp trực tiếp tóm tắt chương & hồ sơ từ Store trên đĩa<br/><b>Chi phí: 0 Token LLM</b> - 100% chính xác]
+    Stage2 --> Check2{"Dung lượng<br/>đã an toàn?"}
+    Check2 -- "Có" --> Safe
+    Check2 -- "Chưa" --> Stage3["3. StoreSummaryCompact (Độc quyền Writer)<br/>Nạp trực tiếp tóm tắt chương & hồ sơ từ Store trên đĩa<br/><b>Chi phí: 0 Token LLM</b> - 100% chính xác"]
     
-    Stage3 --> Check3{Dung lượng<br/>đã an toàn?}
-    Check3 -- Có --> Safe
-    Check3 -- Chưa --> Stage4[4. FullSummary (Bọc lót cuối cùng)<br/>Gọi LLM tóm tắt lại diễn biến với Prompt chuyên biệt]
+    Stage3 --> Check3{"Dung lượng<br/>đã an toàn?"}
+    Check3 -- "Có" --> Safe
+    Check3 -- "Chưa" --> Stage4["4. FullSummary (Bọc lót cuối cùng)<br/>Gọi LLM tóm tắt lại diễn biến với Prompt chuyên biệt"]
     Stage4 --> Safe
 ```
 
@@ -233,9 +237,12 @@ flowchart TD
 
     HumanActions --> Ledger
     Ledger --> MerkleTree
-    Node1 & Node2 --> Parent1
-    Node3 & Node4 --> Parent2
-    Parent1 & Parent2 --> MerkleRoot
+    Node1 --> Parent1
+    Node2 --> Parent1
+    Node3 --> Parent2
+    Node4 --> Parent2
+    Parent1 --> MerkleRoot
+    Parent2 --> MerkleRoot
     MerkleTree --> OutputLegal
 ```
 
@@ -247,7 +254,8 @@ Quy trình tự động học gu thẩm mỹ của tác giả và tiêm trực t
 
 ```mermaid
 flowchart LR
-    A[Phương án A<br/>Thoại sắc bén / Nhịp nhanh] & B[Phương án B<br/>Tâm lý / Thuyết minh] --> UserSelect{Tác giả chọn<br/>(Chỉ mất 2s)}
+    A["Phương án A<br/>Thoại sắc bén / Nhịp nhanh"] --> UserSelect{"Tác giả chọn<br/>(Chỉ mất 2s)"}
+    B["Phương án B<br/>Tâm lý / Thuyết minh"] --> UserSelect
     UserSelect -->|Chọn A| Record["Lưu Choice vào ab_feedback.jsonl<br/>+ Ghi nhận Authorship Ledger"]
     Record --> Synthesizer["Bộ Phân Tích & Tổng Hợp Sở Thích<br/>(SynthesizePreferences)"]
     Synthesizer --> Directives["Đúc kết Chỉ Thị Ưu Tiên & Ràng Buộc Cấm Kỵ<br/>(ProseDirectives & Taboos)"]
@@ -272,8 +280,8 @@ stateDiagram-v2
     state PhaseWriting {
         [*] --> FlowWriting: Sáng tác chương mới
         FlowWriting --> FlowReviewing: Chờ thẩm định
-        FlowReviewing --> FlowRewriting: Phát hiện lỗi ➔ Viết lại
-        FlowReviewing --> FlowPolishing: Lỗi nhẹ ➔ Mài dũa câu từ
+        FlowReviewing --> FlowRewriting: Phát hiện lỗi -> Viết lại
+        FlowReviewing --> FlowPolishing: Lỗi nhẹ -> Mài dũa câu từ
         FlowRewriting --> FlowWriting: Đã giải quyết hết hàng đợi
         FlowPolishing --> FlowWriting: Đã làm mịn xong
         FlowWriting --> FlowSteering: Người dùng can thiệp thời gian thực
