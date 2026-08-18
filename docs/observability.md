@@ -1,15 +1,23 @@
-# Khả Năng Quan Sát (Observability) & Chẩn Đoán (`internal/diag`)
+# Khả Năng Quan Sát (Observability) & Tiểu Hệ Thống Chẩn Đoán
 
-Dự án sử dụng gói `internal/diag` làm tiểu hệ thống quan sát duy nhất cho động cơ sáng tác.
+Hệ thống sử dụng gói nội bộ `internal/diag` làm hạ tầng quan sát, giám sát và chẩn đoán duy nhất cho toàn bộ quá trình sáng tác của `ainovel-cli`.
 
-## 1. Ba Tầng Dữ Liệu Quan Sát
+---
 
-1. `agentcore.ProgressPayload`: Tầng truyền tải sự kiện trực tiếp (raw events).
-2. `host.Event.Summary` & `Detail`: Hiển thị tóm tắt ngắn cho TUI và lưu vết chẩn đoán chi tiết vào tập tin nhật ký.
-3. `/diag` Screen: Giao diện chẩn đoán trực quan trong TUI, phân tích các rủi ro văn phong, bế tắc cốt truyện hoặc vi phạm cài đặt.
+## 1. Ba Tầng Dữ Liệu Quan Sát Độc Lập
 
-## 2. Kỷ Luật Quan Sát
+Để đảm bảo vừa cung cấp thông tin ngắn gọn, trực quan cho người dùng theo dõi trên màn hình Terminal, vừa lưu giữ đầy đủ dấu vết kỹ thuật phục vụ việc gỡ lỗi chuyên sâu, hệ thống phân chia dữ liệu thành 3 tầng:
 
-> **Tiểu hệ thống chẩn đoán có thể đưa ra cảnh báo và gợi ý, nhưng KHÔNG BAO GIỜ tự tay sửa đổi dữ liệu hay thay đổi luồng điều phối của Engine.**
+1. **Tầng Truyền Tải Dữ Liệu Thô (`agentcore.ProgressPayload`)**: Thu thập toàn bộ các sự kiện chi tiết theo thời gian thực từ vòng lặp Worker (lệnh gọi công cụ, chuỗi suy luận, các lượt thử lại).
+2. **Tầng Trình Diễn & Nhật Ký (`host.Event.Summary` & `Detail`)**:
+   - `Summary`: Cung cấp dòng trạng thái ngắn gọn, súc tích để hiển thị trên giao diện TUI.
+   - `Detail`: Lưu giữ đầy đủ thông tin ngữ cảnh, dữ liệu lỗi và stack trace vào tệp nhật ký trên đĩa.
+3. **Màn Hình Chẩn Đoán Trực Quan (`/diag Screen`)**: Bảng điều khiển tích hợp sẵn trong TUI, cho phép phân tích theo thời gian thực các rủi ro về độ mệt mỏi từ ngữ, cảnh báo bế tắc cốt truyện, hoặc các vi phạm quy tắc sáng tác.
 
-Mọi sửa đổi dữ liệu đều phải thông qua các công cụ Tool chuẩn và sự phán quyết của Engine/Arbiter.
+---
+
+## 2. Kỷ Luật Quan Sát Bất Biến
+
+> **Quy tắc cốt lõi: Tiểu hệ thống quan sát chỉ ghi nhận và cảnh báo — Tuyệt đối KHÔNG BAO GIỜ tự ý sửa đổi dữ liệu trong Store hoặc can thiệp vào logic điều phối của Engine.**
+
+Mọi thay đổi đối với trạng thái tác phẩm đều phải đi qua các Công cụ (Tools) có thẩm quyền và tuân theo sự phán quyết của Engine/Arbiter.

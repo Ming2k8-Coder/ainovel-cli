@@ -1,105 +1,89 @@
-# ainovel-cli (Động cơ Sáng tác Tiểu thuyết AI Tự động)
+# ainovel-cli (Động Cơ Tự Động Sáng Tác Tiểu Thuyết Bằng AI)
 
-Động cơ sáng tác tiểu thuyết dài tập tự động hoàn toàn bằng AI. Mã nguồn vận hành dựa trên hệ thống cơ sở mã định tính (Deterministic Engine) phối hợp với các mô hình ngôn ngữ lớn (LLM) được triệu hồi chính xác tại các điểm ra quyết định: Engine thực hiện định tuyến dựa trên dữ liệu thực tế để điều phối 3 Tác nhân Sáng tác Độc lập (**Architect** / **Writer** / **Editor**), đồng thời kích hoạt **Arbiter** khi cần đưa ra các phán quyết ngữ nghĩa.
+**ainovel-cli** là hệ thống AI sáng tác tiểu thuyết dài tập hoàn toàn tự động. Kiến trúc vận hành kết hợp giữa **Động cơ điều phối định tính (Deterministic Engine)** bằng mã nguồn chuẩn xác và **Mô hình ngôn ngữ lớn (LLM)** được kích hoạt đúng lúc đúng chỗ: Engine chịu trách nhiệm điều phối luồng công việc dựa trên trạng thái thực tế đến 3 Tác tử sáng tác độc lập (**Architect** / **Writer** / **Editor**), đồng thời tham vấn **Arbiter** (Trọng tài) khi cần đưa ra các phán quyết ngữ nghĩa then chốt.
 
-Từ một câu ý tưởng ban đầu đến một bộ tiểu thuyết hoàn chỉnh, toàn bộ quy trình vận hành tự động không cần con người can thiệp.
+Hệ thống cho phép chuyển hóa từ một câu ý tưởng ban đầu thành một tác phẩm tiểu thuyết hoàn chỉnh hàng trăm chương một cách mạch lạc, tự động và không cần sự can thiệp thủ công liên tục của con người.
+
+---
 
 ## 🌟 Tính Năng Nổi Bật
 
-- **Động cơ Định tính + Đa Tác nhân (Multi-Agent) Hợp tác**: Engine điều phối 3 đại lý sáng tác độc lập (**Architect** / **Writer** / **Editor**) dựa trên bảng quyết định thực tế. Vòng lặp chính hoàn toàn KHÔNG tốn chi phí LLM, hành vi có thể kiểm thử toàn diện.
-- **Phán quyết Ngữ nghĩa Có thể Kiểm toán (Auditable Arbiter)**: Các quyết định lựa chọn KTS kịch bản, phân loại can thiệp người dùng, giải quyết bế tắc... đều do Arbiter thực hiện trong một lần gọi đơn. Mỗi phán quyết được lưu vết xuống đĩa để phát lại (replay). Đơn giản, ổn định, nói KHÔNG với điều phối phức tạp.
-- **Khôi phục 断点 (Checkpoint) Chính xác cấp Bước (Step-level)**: Sau mỗi công cụ thực thi thành công, hệ thống ghi ngay checkpoint. Khi bị ngắt/crash, khả năng khôi phục chính xác từng bước: `plan` -> `draft` -> `check` -> `commit`.
-- **Lập kế hoạch Cuộn 2 Lớp (Rolling Arc/Volume Planning)**: Tiểu thuyết dài tập không còn bị lập kế hoạch "rỗng" một lần cho tất cả. Ban đầu chỉ lập khung cho 2 Quyển đầu + chi tiết Arc (Tập) 1. Các Arc/Quyển tiếp theo sẽ được Architect mở rộng khi tiến độ viết chạm mốc, luôn tham chiếu tóm tắt trước đó và trạng thái nhân vật.
-- **Gợi ý Thông minh Chương Liên quan**: Mỗi khi viết một chương, hệ thống tự động đối chiếu và gợi ý các chương lịch sử liên quan theo 4 chiều: *Phục bút (Foreshadowing), Nhân vật xuất hiện, Thay đổi trạng thái, Quan hệ*, kết hợp với hé lộ chương tiếp theo để đảm bảo tính liên tục cho bộ truyện 500+ chương.
-- **Chiến lược Ngữ cảnh Tự điều chỉnh (Adaptive Context)**: Tự động chuyển đổi giữa Ngữ cảnh toàn bộ / Cửa sổ trượt (Sliding Window) / Tóm tắt phân tầng dựa trên tổng số chương, hỗ trợ truyện siêu dài 500+ chương.
-- **Đánh giá Chất lượng 7 Chiều (7-Dimensional Review)**: Editor kiểm duyệt dựa trên 7 chiều: *Tính nhất quán cài đặt, Hành vi nhân vật, Nhịp điệu (Pacing), Mạch tự sự, Phục bút, Hook câu khách, và Chất lượng thẩm mỹ*. Chiều thẩm mỹ chia nhỏ thành 5 tiêu chí: *Chất cảm miêu tả, Thủ pháp tự sự, Phân độ thoại, Chất lượng từ ngữ, Sức lay động cảm xúc* (mỗi mục bắt buộc dẫn chứng đoạn văn gốc).
-- **Can thiệp Người dùng Rơle (Real-time Steering)**: Trong quá trình AI đang viết, bạn có thể gõ trực tiếp yêu cầu chỉnh sửa vào khung nhập mà không cần bấm tạm dừng. Hệ thống tự đánh giá phạm vi ảnh hưởng và viết lại các chương chịu tác động.
-- **Nghiệm thu Từng chương Tùy chọn (Optional Step-by-Step Review)**: Mặc định chạy tự động 100%. Khi cần kiểm soát tinh tế, bật `/review on`. Mỗi lệnh `/next` chỉ cho phép ra 1 chương mới, làm lại (rework) hay ngắt mạng không làm tiêu tốn nhầm lượt cấp phép.
-- **Cổng vào Đôi: TUI (Giao diện dòng lệnh trực quan) + Headless (Chạy ngầm)**: Vừa có thể quan sát/can thiệp trực quan trên Terminal, vừa có thể treo chạy ngầm liên tục trên Server, NAS hoặc CI.
-- **Hỗ trợ Đa LLM**: Tự do chuyển đổi giữa OpenRouter, Anthropic (Claude), Google Gemini, OpenAI, DeepSeek, Ollama...
+- **Động Cơ Định Tính + Hệ Đa Tác Tử (Multi-Agent) Phối Hợp**: Engine điều phối 3 tác tử sáng tác chuyên biệt (**Architect** - Kiến trúc sư / **Writer** - Người viết / **Editor** - Biên tập viên) dựa trên bảng trạng thái thực tế. Vòng lặp điều phối chính hoàn toàn không tiêu tốn token LLM, đảm bảo tính ổn định và khả năng kiểm thử toàn diện.
+- **Trọng Tài Ngữ Nghĩa Có Thể Kiểm Toán (Auditable Arbiter)**: Các quyết định mang tính ngữ nghĩa như lựa chọn kịch bản lập dàn ý, phân loại can thiệp từ người dùng, giải quyết xung đột hay gỡ nút thắt bế tắc... đều do Arbiter xử lý trong một lệnh gọi đơn lẻ. Mọi phán quyết đều được lưu vết để dễ dàng phát lại (replay) và kiểm thử hồi quy.
+- **Khôi Phục Tiến Độ Cấp Bước (Step-level Checkpoint)**: Sau mỗi thao tác công cụ thành công, hệ thống lập tức lưu lại điểm kiểm soát (Checkpoint). Khi gặp sự cố mất mạng hoặc dừng tiến trình, hệ thống có thể khôi phục chính xác từng phân đoạn: `plan` (lập kế hoạch) ➔ `draft` (viết nháp) ➔ `check` (kiểm tra nhất quán) ➔ `commit` (nộp bản thảo).
+- **Lập Dàn Ý Cuộn Phân Tầng (Rolling Arc/Volume Planning)**: Giải quyết triệt để vấn đề "dàn ý rỗng" ở các bộ truyện dài. Ban đầu hệ thống chỉ dựng khung tổng thể cho 2 Quyển đầu và chi tiết cho Hồi (Arc) 1. Khi tiến độ viết đạt mốc, Architect sẽ tiếp tục mở rộng các Hồi tiếp theo dựa trên tóm tắt diễn biến thực tế và hồ sơ nhân vật cập nhật.
+- **Truy Hồi Thông Minh Các Chương Liên Quan**: Trong quá trình viết từng chương, hệ thống tự động đối chiếu và gợi ý các dữ kiện lịch sử liên quan theo 4 trục: *Phục bút (Foreshadowing), Sự xuất hiện của nhân vật, Biến chuyển trạng thái, Thay đổi mối quan hệ*, kết hợp với gợi mở của chương kế tiếp nhằm duy trì sự liền mạch cho tác phẩm từ 200 đến 500+ chương.
+- **Chiến Lược Quản Lý Ngữ Cảnh Tự Thích Ứng (Adaptive Context)**: Tự động điều chỉnh linh hoạt giữa Ngữ cảnh đầy đủ, Cửa sổ trượt (Sliding Window) và Tóm tắt phân tầng dựa trên dung lượng tác phẩm, giúp kiểm soát ngân sách token tối ưu.
+- **Thẩm Định Chất Lượng 7 Chiều (7-Dimensional Review)**: Editor đánh giá bản thảo dựa trên 7 tiêu chí cốt lõi: *Nhất quán thiết lập thế giới, Tính logic trong hành vi nhân vật, Nhịp điệu tình tiết (Pacing), Dòng chảy tự sự, Mạng lưới phục bút, Độ hấp dẫn của móc câu (Hook), và Chất lượng thẩm mỹ văn chương*. Tiêu chí thẩm mỹ được phân tích sâu qua: *Độ chân thực của miêu tả, Thủ pháp nghệ thuật, Khí chất thoại nhân vật, Độ tinh tế của từ ngữ, Sức truyền cảm* (kèm trích dẫn bằng chứng từ bản thảo).
+- **Can Thiệp Tức Thời (Real-time Steering)**: Người dùng có thể nhập trực tiếp ý kiến điều chỉnh cốt truyện ngay khi hệ thống đang chạy. Trọng tài Arbiter sẽ phân tích phạm vi tác động và đưa các chương cần sửa vào hàng đợi làm lại mà không làm gián đoạn toàn bộ tiến trình.
+- **Cơ Chế Duyệt Từng Chương Tùy Chọn (Step-by-Step Review Mode)**: Mặc định hệ thống tự động sáng tác 100%. Khi cần kiểm soát chi tiết, người dùng có thể kích hoạt `/review on`. Lệnh `/next` sẽ giải phóng chính xác 1 chương mới; các lượt viết lại do lỗi hay gián đoạn mạng sẽ không làm hao hụt hạn ngạch cấp phép.
+- **Giao Diện Kép (TUI & Headless)**: Hỗ trợ giao diện Terminal trực quan sinh động (TUI) để theo dõi và điều khiển tại chỗ, đồng thời hỗ trợ chế độ chạy ngầm (Headless) cho máy chủ, VPS, NAS hoặc các đường ống CI/CD.
+- **Hỗ Trợ Đa Dạng Nhà Cung Cấp LLM**: Tương thích mượt mà với OpenRouter, Anthropic (Claude), Google Gemini, OpenAI, DeepSeek, Ollama...
 
 ---
 
-## 🏗️ Kiến Trúc Hệ Thống
+## 🏗️ Kiến Trúc Tổng Thể
 
-Triết lý thiết kế cốt lõi: **Tầng Thực tế Định tính (Deterministic), Tầng Ngữ nghĩa Tự chủ (Autonomous)**.
+Triết lý nền tảng: **Mặt Phẳng Trạng Thái Định Tính (Deterministic State) kết hợp Mặt Phẳng Ngữ Nghĩa Tự Chủ (Autonomous Semantics)**.
 
 ```text
-┌─────────────────────────────────────────────────────────┐
-│              Host / Engine (Định tính)                  │
-│  Đọc Store → Route → Chạy trực tiếp Worker → Vòng lặp   │
-│  Kích hoạt Phán quyết / Phân loại / Bế tắc → Gọi Arbiter │
-└────┬──────────┬──────────┬─────────────┬────────────────┘
-     │          │          │             │
- ┌───▼────┐ ┌───▼───┐ ┌────▼────┐   ┌────▼────┐
- │Architect│ │Writer │ │ Editor  │   │ Arbiter │
- │(LLM Loop│ │(LLM Loop│ │(LLM Loop│   │(LLM Func│
- └───┬────┘ └───┬───┘ └────┬────┘   └─────────┘
-     └──────────┼──────────┘
-                │ Gọi Công cụ Tool (IO + Checkpoint)
-┌───────────────▼─────────────────────────────────────────┐
-│                       Store                             │
-│  Progress / Checkpoint / Outline / Drafts / ...         │
-└─────────────────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────────┐
+│                    Host / Engine (Định tính)                 │
+│  Đọc Store ➔ Route ➔ Thực thi trực tiếp Worker ➔ Lặp lại     │
+│  Xử lý Can thiệp / Bế tắc / Lỗi ➔ Tham vấn Trọng tài Arbiter │
+└─────┬────────────┬────────────┬──────────────┬───────────────┘
+      │            │            │              │
+  ┌───▼────┐   ┌───▼────┐   ┌───▼────┐    ┌────▼────┐
+  │Architect│  │ Writer │   │ Editor │    │ Arbiter │
+  │(LLM Loop│  │(LLM Loop│  │(LLM Loop│   │(LLM Func│
+  └───┬─────┘  └───┬────┘   └───┬────┘    └─────────┘
+      └────────────┼────────────┘
+                   │ Gọi Công cụ (Tools: IO + Checkpoint)
+┌──────────────────▼───────────────────────────────────────────┐
+│                            Store                             │
+│  Tiến độ / Checkpoints / Dàn ý / Bản thảo / Thế giới / ...   │
+└──────────────────────────────────────────────────────────────┘
 ```
 
-### Phân công Vai trò Tác nhân (Agents)
+### Phân Định Nhiệm Vụ Các Tác Tử
 
-| Vai trò | Trách nhiệm | Công cụ (Tools) sử dụng |
+| Tác tử | Trách nhiệm chính | Công cụ (Tools) sử dụng |
 |---|---|---|
-| **Arbiter** | Phán quyết ngữ nghĩa: Chọn KTS kịch bản ban đầu, phân loại can thiệp người dùng, tìm lối thoát khi thất bại/bế tắc. | Không (Gọi LLM đơn lẻ, trả về quyết định cấu trúc). |
-| **Architect** | Tạo tên tác phẩm, giới thiệu, tiền đề (premise), đại cương (outline), hồ sơ nhân vật, quy tắc thế giới. | `novel_context`, `save_book`, `save_foundation` |
-| **Writer** | Tự chủ hoàn thành ý tưởng, sáng tác, tự duyệt và nộp một chương. | `novel_context`, `read_chapter`, `plan_chapter`, `draft_chapter`, `check_consistency`, `commit_chapter` |
-| **Editor** | Đọc bản thảo gốc, thẩm định ở 2 tầng: Cấu trúc câu chuyện & Thẩm mỹ văn học. | `novel_context`, `read_chapter`, `save_review`, `save_arc_summary`, `save_volume_summary` |
+| **Arbiter** (Trọng tài) | Đưa ra các phán quyết ngữ nghĩa: Khởi tạo kịch bản, phân loại can thiệp người dùng, chỉ định phương án khi Worker thất bại hoặc bế tắc. | Không gọi công cụ IO (Thực thi hàm LLM đơn lẻ, trả về dữ liệu cấu trúc). |
+| **Architect** (Kiến trúc sư) | Xây dựng tiền đề (Premise), đại cương (Outline), thiết lập nhân vật, bối cảnh và quy tắc thế giới. | `novel_context`, `save_book`, `save_foundation` |
+| **Writer** (Người viết) | Tự chủ tiếp nhận kế hoạch, đọc tư liệu, viết nháp, kiểm tra tính nhất quán và hoàn thiện bản thảo chương. | `novel_context`, `read_chapter`, `plan_chapter`, `draft_chapter`, `check_consistency`, `commit_chapter` |
+| **Editor** (Biên tập viên) | Đọc bản thảo gốc, thẩm định chuyên sâu ở 2 tầng: Cấu trúc tình tiết & Thẩm mỹ văn học; tóm tắt Hồi/Quyển. | `novel_context`, `read_chapter`, `save_review`, `save_arc_summary`, `save_volume_summary` |
 
 ---
 
-## 🔄 Quy Trình Viết Bài (Writing Workflow)
+## 🔄 Quy Trình Sáng Tác Tiêu Chuẩn
 
 ```text
-Yêu cầu người dùng → Arbiter Chọn KTS → Architect Lập khung + Arc 1 → Writer Viết từng chương → Editor Kiểm duyệt Arc
-                         (Lưu đĩa)                                          ↑                      │
-                                                                           ├── Viết lại/Mài dũa ◄──┘
-                                                                           │
-                                                                    Architect Mở rộng Arc/Quyển tiếp
-                                                                   (Tham chiếu Tóm tắt + Ảnh chụp nhân vật)
+Ý tưởng người dùng ➔ Arbiter chọn kịch bản ➔ Architect dựng khung & Hồi 1 ➔ Writer viết từng chương ➔ Editor thẩm định Hồi
+                                (Lưu Store)                                           ↑                     │
+                                                                                      ├── Yêu cầu viết lại ◄┘
+                                                                                      │
+                                                                          Architect mở rộng Hồi/Quyển tiếp
+                                                                          (Dựa trên Tóm tắt + Dữ liệu nhân vật)
 ```
 
-### Quy trình chuẩn của Writer cho từng chương:
-1. `novel_context`: Tải ngữ cảnh (tóm tắt chương trước, phục bút, trạng thái nhân vật, quy tắc văn phong, gợi ý chương liên quan).
-2. `read_chapter`: Đọc lại đoạn văn trước để bắt đúng văn phong và nhịp điệu.
-3. `plan_chapter`: Phác thảo mục tiêu, mâu thuẫn xung đột, tuyến cảm xúc chương này.
-4. `draft_chapter`: Viết toàn bộ nội dung chương.
-5. `check_consistency`: Đổi chiếu dữ liệu kiểm tra tính nhất quán (bắt buộc thực hiện sau draft).
-6. `commit_chapter`: Nộp bản thảo cuối cùng, ghi dữ liệu thực tế xuống đĩa.
+### 6 Bước Chuẩn Hóa Của Writer Cho Mỗi Chương:
+1. `novel_context`: Nạp gói ngữ cảnh (tóm tắt chương trước, mạng lưới phục bút, trạng thái nhân vật, văn phong chỉ định, dữ kiện liên quan).
+2. `read_chapter`: Đọc lại phần đuôi của chương trước để bắt nhịp văn phong và cảm xúc liền mạch.
+3. `plan_chapter`: Lập hợp đồng chương: mục tiêu, nhịp kịch tính, xung đột trung tâm, diễn biến tâm lý.
+4. `draft_chapter`: Chấp bút sáng tác toàn bộ văn xuôi cho chương.
+5. `check_consistency`: Đối chiếu bản thảo với các thiết lập thế giới và ràng buộc nhân vật.
+6. `commit_chapter`: Nộp bản thảo chính thức, cập nhật dòng thời gian và lưu vết thực tế xuống đĩa.
 
 ---
 
-## 📁 Hướng Dẫn Việt Hóa Cấu Trúc Mã Nguồn (Localizing the Codebase)
-
-Để Việt hóa toàn bộ kho mã nguồn này cho dự án của bạn (đặc biệt là Vũ trụ **SANBAKA**), hãy chú ý các thư mục quan trọng sau:
-
-1. **Thư mục Prompt hệ thống (`assets/prompts/`)**:
-   - `architect-long.md` & `architect-short.md`: Việt hóa câu lệnh cho Kiến trúc sư kịch bản.
-   - `writer.md`: Việt hóa câu lệnh hướng dẫn Tác giả viết văn xuôi (thêm văn phong Cyberpunk/Hard Sci-Fi tại đây).
-   - `editor.md`: Việt hóa tiêu chuẩn kiểm duyệt 7 chiều.
-   - `arbiter-*.md`: Việt hóa câu lệnh phán quyết trọng tài.
-
-2. **Thư mục Văn phong & Quy tắc (`assets/styles/` & `assets/voice.md`)**:
-   - Chứa định nghĩa giọng văn, quy tắc từ ngữ cấm/khuyên dùng.
-
-3. **Giao diện TUI (`internal/entry/tui/`)**:
-   - Chứa các chuỗi hiển thị bảng điều khiển Terminal.
-
----
-
-## ⚡ Bắt Đầu Nhanh
+## ⚡ Hướng Dẫn Khởi Chạy Nhanh
 
 ```bash
-# Chạy dự án bằng Go
-go run ./cmd/ainovel
+# Chạy trực tiếp mã nguồn bằng Go
+go run ./cmd/ainovel-cli
 
-# Hoặc build thành file thực thi
-go build -o ainovel ./cmd/ainovel
+# Hoặc biên dịch thành file nhị phân
+go build -o ainovel ./cmd/ainovel-cli
 ./ainovel
 ```

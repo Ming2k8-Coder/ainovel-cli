@@ -1,24 +1,33 @@
-# Quy Trình Biên Dịch Ngữ Nghĩa Nhập Tiểu Thuyết (`/import`)
+# Quy Trình Biên Dịch Ngữ Nghĩa Nhập Tác Phẩm (`/import`)
 
-Quy trình nhập tiểu thuyết từ bên ngoài (`/import`) giúp phân tích một tệp văn bản thô (TXT/EPUB) và biên dịch nó thành cấu trúc dữ liệu chuẩn của `ainovel-cli`.
+Tính năng nhập tiểu thuyết từ nguồn bên ngoài (`/import`) cho phép phân tích một tệp văn bản thô (định dạng TXT hoặc EPUB) và tự động biên dịch thành cấu trúc dữ liệu chuẩn của `ainovel-cli`, giúp AI có thể nắm bắt toàn bộ bối cảnh và tiếp tục viết các chương tiếp theo một cách mạch lạc.
 
-## 1. Các Giai Đoạn Biên Dịch (Compilation Pipeline)
+---
+
+## 1. Đường Ống Biên Dịch 5 Giai Đoạn (Compilation Pipeline)
 
 ```text
-Văn bản thô (Raw File)
+Văn bản thô (Tệp TXT / EPUB)
    ↓
-[1. Ingest]       → Đọc và đánh chỉ số dòng / khối văn bản.
+[1. Tiếp Nhận (Ingest)]
+   Đọc tệp, làm sạch mã hóa ký tự và đánh chỉ mục từng khối văn bản.
    ↓
-[2. Segment]      → Phân đoạn ngữ nghĩa (xác định ranh giới chương, quyển, phần mở đầu/kết thúc).
+[2. Phân Đoạn (Segment)]
+   Tự động nhận diện ranh giới chương, chia tách hồi/quyển, phần mở đầu và kết thúc.
    ↓
-[3. Analyze]      → Phân tích từng chương (rút trích sự kiện, nhân vật, phục bút, loại hook).
+[3. Phân Tích (Analyze)]
+   Quét sâu từng chương để trích xuất sự kiện chính, hồ sơ nhân vật, mạng lưới phục bút và loại móc câu.
    ↓
-[4. Synthesize]   → Tổng hợp toàn thư (định hình premise, lập đại cương phân tầng, compass câu chuyện).
+[4. Tổng Hợp (Synthesize)]
+   Tổng hợp toàn bộ tác phẩm: Đúc kết tiền đề (Premise), dựng đại cương phân tầng và la bàn định hướng (Compass).
    ↓
-[5. Publish]      → Xuất bản thành Store chính thức để AI có thể tiếp tục viết tiếp.
+[5. Xuất Bản (Publish)]
+   Ghi toàn bộ cấu trúc vào Store để các tác tử Architect, Writer và Editor sẵn sàng tiếp quản sáng tác.
 ```
 
-## 2. Đặc Điểm
+---
 
-- **Tái Tạo Đẳng Idempotent**: Mỗi giai đoạn đều gắn với vân tay (fingerprint) của dữ liệu đầu vào. Khi bị ngắt giữa chừng, hệ thống có thể khôi phục và chạy tiếp chính xác tại giai đoạn đó.
-- **Không Trôi Dữ Liệu**: Chỉ trích xuất các thực tế **có thật trong văn bản thô**, không bịa đặt thêm các chi tiết chưa viết.
+## 2. Các Đặc Tính Kỹ Thuật Nổi Bật
+
+- **Tính Đẳng Biến (Idempotency) & Tự Khôi Phục**: Mỗi giai đoạn biên dịch đều được gắn chặt với mã băm (fingerprint) của dữ liệu đầu vào. Nếu quá trình phân tích bị gián đoạn giữa chừng, hệ thống có thể tiếp tục xử lý chính xác tại bước dở dang mà không phải phân tích lại từ đầu.
+- **Bảo Toàn Chân Lý Văn Bản**: Hệ thống chỉ trích xuất các dữ kiện thực sự xuất hiện trong văn bản gốc, tuyệt đối không suy diễn hay tự bịa đặt các chi tiết ngoài lề vào hồ sơ thế giới.

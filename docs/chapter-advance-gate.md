@@ -1,35 +1,32 @@
-# Cổng Tiến Độ Chương (Chapter Advance Gate)
+# Cơ Chế Kiểm Soát Tiến Độ Chương (Chapter Advance Gate)
 
-> Trạng thái: Đã triển khai  
-> Ngày: 2026-07-14  
-> Giải quyết: Nghiệm thu từng chương, tạm dừng an toàn sau khi can thiệp, cấp phép chương chính xác khi khôi phục sau sự cố (crash recovery).
+Tài liệu này mô tả chi tiết cơ chế khóa kiểm soát tiến độ từng chương (`gate`), chế độ nghiệm thu thủ công (`/review on`), cơ chế cấp phép phát hành (`/next`), và quy tắc xử lý khi phải làm lại bản thảo (Rework Safety).
 
-## 1. Tại Sao Cần Thiết?
+---
 
-Rủi ro cốt lõi của sáng tác tự động dài tập không phải là tiêu tốn thêm một lần gọi API, mà là trong lúc người dùng đang đọc nghiệm thu, hệ thống vẫn tiếp tục viết chương mới và đưa các tóm tắt, trạng thái nhân vật cũng như phản hồi đại cương (dựa trên cốt truyện cũ) vào nguồn thực tế tiếp theo. Việc xóa chương viết thừa không thể tự động hoàn tác các trạng thái phái sinh này, khiến người dùng mất niềm tin vào quy trình sáng tác.
+## 1. Bối Cảnh & Mục Đích Thiết Kế
 
-Dự án vẫn định vị mặc định là "tự động hoàn thành liên tục sau khi nhận mục tiêu". Do đó, không biến việc xác nhận từng chương thành mặc định toàn cục. Hệ thống cung cấp 2 chính sách rõ ràng:
+Mặc định, `ainovel-cli` vận hành ở chế độ tự động hóa hoàn toàn 100%: Engine tự động định tuyến từ chương này sang chương khác cho đến khi hoàn thành toàn bộ tác phẩm.
 
-- `auto`: Chế độ mặc định, tự động đẩy tiến độ liên tục.
-- `review`: Chế độ nghiệm thu từng chương do người dùng chủ động chọn, mỗi chương mới đều cần một giấy phép (permit) chính xác.
+Tuy nhiên, trong quá trình sáng tác chất lượng cao, tác giả con người thường cần:
+1. **Kiểm soát nhịp độ**: Tạm dừng sau mỗi chương để đọc duyệt, đánh giá văn phong trước khi cho phép AI viết tiếp chương sau.
+2. **Can thiệp định hướng**: Điều chỉnh các chi tiết chưa ưng ý thông qua lệnh can thiệp thời gian thực (`steer`).
+3. **An toàn về hạn ngạch cấp phép**: Mỗi lần người dùng gõ `/next` là cấp phép tạo **chính xác 1 chương mới**. Nếu chương đó bị lỗi mạng, bị từ chối thẩm định hoặc phải viết lại nhiều lần, lượt cấp phép `/next` đó không bị mất hay trừ hao nhầm.
 
-## 2. Ranh Giới Nhiệm Vụ
+---
 
-| Vấn đề | Thuộc về | Lý do |
-|---|---|---|
-| Chế độ hiện tại có phải nghiệm thu từng chương | RunMeta / Host | Ý định vận hành lâu dài của người dùng |
-| Chương nào đã được cấp phép | RunMeta / Gate | Thực tế cơ khí có thể xác minh và khôi phục |
-| Tiếp theo chạy Worker nào | `flow.Route` | Suy luận từ hàm thuần thực tế sáng tác |
-| Lệnh có bắt đầu một chương mới tiến về phía trước không | `flow.StartsForwardChapter` | Phán đoán cơ khí phân loại |
-| "Sửa xong cho tôi xem" có cần tạm dừng không | Arbiter | Phán đoán ngữ nghĩa ngôn ngữ tự nhiên |
-| Khi nào kích hoạt tạm dừng | `ChapterAdvanceGate` | Thực thi định tính đối với ý định một lần |
+## 2. Các Trạng Thái Của Cổng Kiểm Soát
 
-## 3. Chế Độ Vận Hành
+- **Chế độ Tự động (`review=off`)**: Cổng luôn mở (`Allow = true`), Engine tự động điều phối liên tục giữa Writer, Editor và Architect.
+- **Chế độ Duyệt từng bước (`review=on`)**:
+  - Khi một chương hoàn thành và nộp bản thảo (`commit_chapter`), cổng sẽ đóng lại và chuyển sang trạng thái chờ cấp phép (`PermittedChapter <= CompletedChapter`).
+  - Động cơ sẽ tạm dừng tại ranh giới chương và phát thông báo trên TUI để người dùng đọc duyệt.
+  - Khi người dùng gõ lệnh `/next`, biến `PermittedChapter` được nâng lên `CurrentChapter + 1`, cho phép Writer bắt tay vào viết chương tiếp theo.
 
-- `/review on`: Chuyển sang chế độ nghiệm thu từng chương.
-- `/review off`: Chuyển về chế độ tự động.
-- `/next`: Cấp phép cho chương tiếp theo (`NextChapter()`) và khởi chạy Engine.
+---
 
-## 4. Quy Tắc Thép
-- Cổng tiến độ chỉ áp dụng cho việc **bắt đầu một chương mới**. Việc sửa đổi (rewrite), thẩm định (review), lập kế hoạch đại cương (outline) không bị chặn bởi cổng này.
-- Khi ngắt máy/crash, giấy phép được đối chiếu chặt chẽ với trạng thái thực tế để đảm bảo không bị tiêu tốn nhầm cho chương tiếp theo.
+## 3. Quy Tắc Bảo Vệ Khi Viết Lại (Rework Safety)
+
+Khi một chương cần phải làm lại (do Editor đánh giá không đạt yêu cầu hoặc người dùng yêu cầu sửa đổi):
+- Các tác vụ **viết lại (`rewrite`)** hoặc **mài dũa (`polish`)** cho các chương đã có trong hàng đợi `PendingRewrites` **luôn luôn được phép thực thi ngay lập tức** mà không bị chặn bởi cổng cấp phép chương mới.
+- Chỉ khi toàn bộ hàng đợi làm lại đã được giải quyết xong (`rewrites_drained = true`), cổng mới kiểm tra lại điều kiện cấp phép cho chương tiếp theo.
