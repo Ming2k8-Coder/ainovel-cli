@@ -11,10 +11,12 @@ import (
 	"github.com/voocel/ainovel-cli/internal/abselect"
 	"github.com/voocel/ainovel-cli/internal/authorship"
 	"github.com/voocel/ainovel-cli/internal/bootstrap"
+	"github.com/voocel/ainovel-cli/internal/cryptoaudit"
 	"github.com/voocel/ainovel-cli/internal/entry/headless"
 	"github.com/voocel/ainovel-cli/internal/entry/startup"
 	"github.com/voocel/ainovel-cli/internal/entry/tui"
 	"github.com/voocel/ainovel-cli/internal/eval"
+	"github.com/voocel/ainovel-cli/internal/publisher"
 	"github.com/voocel/ainovel-cli/internal/rules"
 	buildversion "github.com/voocel/ainovel-cli/internal/version"
 )
@@ -38,6 +40,10 @@ func main() {
 			os.Exit(authorship.Command(os.Args[2:]))
 		case "ab-feedback", "ab-select":
 			os.Exit(abselect.Command(os.Args[2:]))
+		case "audit-proof", "merkle-proof":
+			os.Exit(cryptoaudit.Command(os.Args[2:]))
+		case "publish", "export-mdx":
+			os.Exit(publisher.Command(os.Args[2:]))
 		}
 	}
 
