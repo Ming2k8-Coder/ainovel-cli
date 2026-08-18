@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/voocel/ainovel-cli/assets"
+	"github.com/voocel/ainovel-cli/internal/abselect"
 	"github.com/voocel/ainovel-cli/internal/authorship"
 	"github.com/voocel/ainovel-cli/internal/bootstrap"
 	"github.com/voocel/ainovel-cli/internal/entry/headless"
@@ -35,6 +36,8 @@ func main() {
 			os.Exit(eval.Command(os.Args[2:]))
 		case "copyright", "authorship":
 			os.Exit(authorship.Command(os.Args[2:]))
+		case "ab-feedback", "ab-select":
+			os.Exit(abselect.Command(os.Args[2:]))
 		}
 	}
 
