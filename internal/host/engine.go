@@ -565,6 +565,9 @@ func instructionKey(inst *flow.Instruction) string {
 	if inst == nil {
 		return ""
 	}
+	if inst.Chapter > 0 {
+		return fmt.Sprintf("%s\x00ch:%d\x00%s", inst.Agent, inst.Chapter, inst.Task)
+	}
 	return inst.Agent + "\x00" + inst.Task
 }
 

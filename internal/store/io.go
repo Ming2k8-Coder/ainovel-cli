@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"sync"
+	"time"
 )
 
 // IO 封装文件系统读写操作，提供加锁和原子写入。
@@ -60,7 +61,16 @@ func (io *IO) WriteFileUnlocked(rel string, data []byte) error {
 	if err := tmp.Close(); err != nil {
 		return err
 	}
-	return os.Rename(tmpPath, p)
+
+	var renameErr error
+	for attempts := 0; attempts < 5; attempts++ {
+		renameErr = os.Rename(tmpPath, p)
+		if renameErr == nil {
+			return nil
+		}
+		time.Sleep(time.Duration(10*(attempts+1)) * time.Millisecond)
+	}
+	return renameErr
 }
 
 func (io *IO) ReadJSON(rel string, v any) error {

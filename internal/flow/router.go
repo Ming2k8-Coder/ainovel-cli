@@ -133,16 +133,24 @@ func Route(s State) *Instruction {
 
 	// 3. 重写/打磨队列优先（事实已在工具层落盘，Router 只照单派发）
 	if len(p.PendingRewrites) > 0 {
-		ch := p.PendingRewrites[0]
-		verb := "重写"
-		if p.Flow == domain.FlowPolishing {
-			verb = "打磨"
+		var validCh int
+		for _, ch := range p.PendingRewrites {
+			if ch > 0 {
+				validCh = ch
+				break
+			}
 		}
-		return &Instruction{
-			Agent:   "writer",
-			Task:    fmt.Sprintf("%s第 %d 章", verb, ch),
-			Reason:  fmt.Sprintf("PendingRewrites 队列剩余 %d 章", len(p.PendingRewrites)),
-			Chapter: ch,
+		if validCh > 0 {
+			verb := "重写"
+			if p.Flow == domain.FlowPolishing {
+				verb = "打磨"
+			}
+			return &Instruction{
+				Agent:   "writer",
+				Task:    fmt.Sprintf("%s第 %d 章", verb, validCh),
+				Reason:  fmt.Sprintf("PendingRewrites 队列剩余 %d 章", len(p.PendingRewrites)),
+				Chapter: validCh,
+			}
 		}
 	}
 
