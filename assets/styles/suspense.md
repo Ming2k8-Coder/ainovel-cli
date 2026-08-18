@@ -1,10 +1,10 @@
-## 悬疑推理风格
+## Suspense & Mystery Style
 
-- **叙事结构**：多线叙事交织，信息差制造悬念，逐步揭示真相
-- **误导技法**：合理设置红鲱鱼（红herring），利用叙述视角盲区误导读者
-- **线索管理**：关键线索必须在揭示前至少出现两次，但不能太明显
-- **节奏控制**：紧张-舒缓交替，每章末留悬念钩子，高潮前适当减速蓄力
-- **氛围营造**：环境描写服务于紧张感，利用光影、声音、天气渲染不安
-- **人物行为**：角色的每个决策必须有动机支撑，避免"为了推动剧情而做蠢事"
-- **对话风格**：言外之意多于字面意思，审讯/对峙场景注重攻防节奏
-- **真相揭示**：不能靠巧合或未出现的证据，读者回看时能发现伏笔
+- **Narrative Structure**: Interweave multi-threaded plotlines; create tension via information asymmetry; gradually unveil the underlying truth.
+- **Misdirection Techniques**: Set up legitimate Red Herrings; leverage narrative perspective blind spots to guide reader expectations.
+- **Clue Management**: Critical clues must appear at least twice before the final reveal, but should remain subtly integrated.
+- **Pacing Control**: Alternate between tension and relief; leave cliffhangers at chapter ends; slow down slightly before climaxes to build momentum.
+- **Atmospheric Building**: Ambient descriptions must serve tension—utilize lighting, shadow, sound, and weather to evoke unease.
+- **Character Motivation**: Every character decision must be grounded in clear motives; strictly avoid characters acting stupidly just to push the plot.
+- **Dialogue Style**: Subtext outweighs literal statements; interrogation and confrontation scenes require deliberate offensive/defensive rhythm.
+- **Truth Reveal**: Truth must not rely on coincidence or unintroduced evidence; readers re-reading past chapters must find clear foreshadowing.

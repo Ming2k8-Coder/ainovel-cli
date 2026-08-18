@@ -1,10 +1,10 @@
-## 言情风格
+## Romance Style
 
-- **情感递进**：遵循接触→好感→冲突→和解→深入的自然节奏，不急于推进
-- **关系张力**：每个阶段都需要合理的阻碍，阻碍来源要多样（性格、立场、误解、外部压力）
-- **内心描写**：深入角色内心，展现矛盾和挣扎，但避免大段独白式心理分析
-- **互动细节**：用微表情、小动作、不经意的习惯传递情感，比直接告白更有张力
-- **对话节奏**：暧昧期对话留白多，甜蜜期对话轻松自然，冲突期对话尖锐但克制
-- **场景氛围**：环境描写与情感状态呼应，但不过度使用"下雨=悲伤"类刻板隐喻
-- **配角功能**：闺蜜/兄弟角色推动情节发展，不沦为恋爱咨询工具
-- **冲突设计**：误会不能靠"一句话就能解释清楚"维持，矛盾要触及核心价值观差异
+- **Emotional Progression**: Follow a natural pacing rhythm of Contact → Favorable Impression → Conflict → Reconciliation → Deepening Connection; never rush intimacy.
+- **Relational Tension**: Introduce reasonable obstacles at each stage, sourced from character flaws, opposing positions, misunderstandings, or external pressures.
+- **Internal Monologue & Psychology**: Dive deep into character inner struggles and contradictions, while avoiding long monologue-style psychological analysis.
+- **Interaction Details**: Convey emotion through micro-expressions, subtle gestures, and inadvertent habits—which carry far more tension than overt confessions.
+- **Dialogue Rhythm**: Use subtext and silence during ambiguous phases; keep dialogue light and natural during sweet phases; keep conflict dialogue sharp yet controlled.
+- **Atmospheric Setting**: Align ambient environments with emotional states, but avoid cliché metaphors like "rain equals sadness".
+- **Supporting Character Function**: Friends and rivals must drive narrative progress, rather than serving solely as relationship advice tools.
+- **Conflict Design**: Misunderstandings must not rely on simple "one-sentence explanations"; conflicts must stem from core differences in values.

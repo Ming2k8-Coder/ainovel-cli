@@ -1,14 +1,14 @@
-## 写作标准
+## Writing Standards
 
-这些是质量准则，不要逐条生硬打卡。章节首先要自然成立，其次才是检查项齐全。
+These are quality guidelines; do not treat them as rigid mechanical checkboxes. A chapter must first feel natural and coherent, and secondarily satisfy these quality checks.
 
-- 开头尽快建立冲突、悬念、欲望或异常感，少用抽象回顾。
-- 用动作、对话、感官细节推进情节，少用概述和总结。
-- 角色对话要有身份差异、潜台词和行动目的，不要说教。
-- 情绪用身体反应和选择呈现，不直接贴标签。
-- 关系变化要有事件触发，不要一章内从陌生跃迁到绝对信任。
-- 秘密分批释放，不提前解释大纲未要求的重大谜底。
-- 章末钩子可以是危机、选择、情绪余波、关系变化或未完成目标，不必每章都做夸张悬念。
-- **去 AI 味**：写作时规避 `reference_pack.references.anti_ai_tone` 列出的全部模式（结构/用词/描写/对话/节奏五类）。其中可机械枚举的疲劳词、套句阈值见 `working_memory.user_rules.structured`，commit 时强制检查。
-- **句式多样性**：`episodic_memory.style_stats`（如有）是代码对你已写正文的统计——你自己的口头禅镜像。本章主动压低其中的高频项；最常见的固化源是矫正句（"不是…而是…"）、单一计时量词（"几息/数息"）和同型明喻连用。章末收束形式（短句斩断/对话余音/场景余像/悬念提问）与近期章节轮换，开篇避免每章都用"夜里/清晨/醒来"式时间起手。
-- **前情不复述**：`episodic_memory` 中的摘要、伏笔、状态是已写入正文的备忘，用于对照衔接，不是本章待写素材；上一章已交代的信息，新章只在剧情需要时以新视角触及，禁止前情提要式重写（跨章逐字复读会被 style_stats 的 repeated_sentences 记录在案）。
+- Establish conflict, suspense, desire, or abnormality quickly at the opening; avoid abstract retrospectives.
+- Advance the plot using action, dialogue, and sensory details; minimize exposition and summaries.
+- Character dialogue must reflect distinct identity, subtext, and underlying intent—never preach or lecture.
+- Show emotions through physical reactions and character choices rather than static labels.
+- Relationship changes require triggering events; do not jump from total strangers to absolute trust in a single chapter.
+- Reveal secrets incrementally; never prematurely explain major mysteries not required by the outline.
+- Ending hooks can take the form of crisis, difficult choice, emotional lingering, relationship shifts, or unfulfilled goals—not every chapter requires an exaggerated cliffhanger.
+- **De-AI Tone**: Avoid all patterns listed in `reference_pack.references.anti_ai_tone` during drafting (spanning structure, vocabulary, description, dialogue, and pacing). Mechanically countable fatigued words and formulaic phrases are bound by thresholds in `working_memory.user_rules.structured`, strictly validated upon commit.
+- **Sentence Structure Diversity**: `episodic_memory.style_stats` (if present) represents automated statistical metrics of your previously drafted text—a mirror of your own writing habits. Actively reduce high-frequency patterns recorded here. Common sources of repetitive phrasing include correction structures ("not X, but Y"), single timing units ("in a few breaths"), and consecutive simile patterns. Rotate ending styles (short punchy closures, dialogue lingering, scene imagery, suspense questions) relative to recent chapters; avoid opening every chapter with time indicators like "at night / at dawn / upon waking".
+- **No Recapitulation**: Summaries, foreshadowing, and state entries in `episodic_memory` are reference memos of already written content for continuity—NOT raw material to be written into the current chapter. Do not re-explain prior chapter events unless required by new narrative perspective. Re-stating past events like a recap is strictly forbidden (cross-chapter verbatim repetition will be flagged in `style_stats.repeated_sentences`).

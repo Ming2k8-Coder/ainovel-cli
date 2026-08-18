@@ -1,7 +1,7 @@
-## 通用写作风格
+## General Writing Style
 
-- 叙事节奏：张弛有度，关键转折放慢，过渡紧凑
-- 描写方式：五感具象描写优先于抽象概述
-- 对话要求：体现人物性格差异，自然流畅，避免说教
-- 情感表达：通过动作和细节传递，不直接点明情绪
-- 文字风格：简洁有力，避免过度修饰
+- Narrative Pacing: Well-balanced rhythm; slow down during key plot turns, keep transitions concise and tight.
+- Descriptive Technique: Prioritize concrete sensory descriptions (five senses) over abstract summaries.
+- Dialogue Standards: Reflect character identity and personality differences; keep dialogue natural, fluid, and non-preachy.
+- Emotional Expression: Convey emotions through actions and physical details rather than naming emotions directly.
+- Prose Style: Concise, powerful, and clear; avoid excessive ornamentation.
