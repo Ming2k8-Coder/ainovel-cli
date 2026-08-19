@@ -27,6 +27,7 @@ import (
 	"github.com/voocel/ainovel-cli/internal/rules"
 	"github.com/voocel/ainovel-cli/internal/server"
 	"github.com/voocel/ainovel-cli/internal/stylepreset"
+	"github.com/voocel/ainovel-cli/internal/universe"
 	buildversion "github.com/voocel/ainovel-cli/internal/version"
 )
 
@@ -71,6 +72,8 @@ func main() {
 			os.Exit(novelanalyzer.Command(os.Args[2:]))
 		case "cmd", "do":
 			os.Exit(nlcommander.Command(os.Args[2:]))
+		case "universe", "mcu":
+			os.Exit(universe.Command(os.Args[2:]))
 		}
 	}
 

@@ -173,6 +173,30 @@ ainovel-cli cmd "Mở WebUI trên cổng 3000 và xuất báo cáo bản quyền
 ainovel-cli cmd "Chuyển phong cách prompt sang cyberpunk"
 ```
 
+---
+
+## 12. Quản Lý & Truy Vết Vũ Trụ Truyện Quy Mô MCU (`universe` / `mcu`)
+
+Giải quyết bài toán quản lý các bộ truyện chung vũ trụ (Shared Universe) siêu lớn và phức tạp (tương tự Marvel Cinematic Universe - MCU, Star Wars, SANBAKA Universe):
+
+### a) Truy Vết Lịch Sử Thực Thể Xuyên Các Bộ Truyện (MCU Tracing):
+Theo vết một nhân vật, bảo vật hoặc công nghệ qua nhiều bộ truyện song song để biết nhân vật đó đã xuất hiện ở đâu, năm nào, thuộc bộ truyện nào:
+```bash
+ainovel-cli universe --trace "Dương Hùng" --dir ./novel
+```
+
+### b) Ghi Nhận Vết Sự Kiện Mới Trong Vũ Trụ (Universe Event Record):
+```bash
+ainovel-cli universe --record "Nhân vật A" --series "HUST-sanbaka" --chapter 12 --year 1956 --desc "Nhận chip Quantum" --loc "ĐHBK Hà Nội" --dir ./novel
+```
+
+### c) Thẩm Định Xung Đột Định Luật Vũ Trụ (Canon Continuity Audit):
+Tự động phát hiện các nghịch lý thời gian (Time Paradoxes) hoặc sự vi phạm định luật tối cao của vũ trụ giữa các bộ truyện:
+```bash
+ainovel-cli universe --check-canon --dir ./novel
+```
+
+
 
 
 
