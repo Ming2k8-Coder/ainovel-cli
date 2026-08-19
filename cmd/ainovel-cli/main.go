@@ -17,8 +17,10 @@ import (
 	"github.com/voocel/ainovel-cli/internal/entry/headless"
 	"github.com/voocel/ainovel-cli/internal/entry/startup"
 	"github.com/voocel/ainovel-cli/internal/entry/tui"
+	"github.com/voocel/ainovel-cli/internal/entry/webui"
 	"github.com/voocel/ainovel-cli/internal/eval"
 	"github.com/voocel/ainovel-cli/internal/foreshadow"
+	"github.com/voocel/ainovel-cli/internal/gitmgr"
 	"github.com/voocel/ainovel-cli/internal/publisher"
 	"github.com/voocel/ainovel-cli/internal/rules"
 	"github.com/voocel/ainovel-cli/internal/server"
@@ -56,6 +58,10 @@ func main() {
 			os.Exit(charvector.Command(os.Args[2:]))
 		case "stats", "analytics":
 			os.Exit(analytics.Command(os.Args[2:]))
+		case "git":
+			os.Exit(gitmgr.Command(os.Args[2:]))
+		case "webui", "dashboard":
+			os.Exit(webui.Command(os.Args[2:]))
 		}
 	}
 

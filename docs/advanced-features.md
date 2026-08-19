@@ -89,3 +89,31 @@ Xuất bảng phân tích toàn diện về lượng Token đã tiêu thụ, chi
 ainovel-cli stats --dir ./novel
 ```
 
+---
+
+## 8. Bảng Điều Khiển Trực Quan Trình Duyệt (`webui`)
+
+Khởi chạy bảng điều khiển tương tác trực quan cao cấp trên trình duyệt (WebUI Dashboard) tại `http://localhost:3000`, hoạt động song song cùng với TUI (Terminal) và Headless:
+
+```bash
+ainovel-cli webui --dir ./novel --port 3000
+```
+
+---
+
+## 9. Quản Lý Phiên Bản Git Tự Động (`git`)
+
+Tự động hóa toàn bộ việc sao lưu, gắn nhãn mốc lịch sử và commit từng chương bản thảo vào Git Version Control:
+
+```bash
+# Kiểm tra trạng thái Git repository
+ainovel-cli git --dir ./novel
+
+# Khởi tạo Git repo cho tác phẩm
+ainovel-cli git --init --dir ./novel
+
+# Tạo nhãn mốc hoàn thành Quyển 1
+ainovel-cli git --tag "vol1-complete" --dir ./novel
+```
+
+
