@@ -10,6 +10,7 @@ import (
 	"github.com/voocel/ainovel-cli/assets"
 	"github.com/voocel/ainovel-cli/internal/abselect"
 	"github.com/voocel/ainovel-cli/internal/analytics"
+	"github.com/voocel/ainovel-cli/internal/arena"
 	"github.com/voocel/ainovel-cli/internal/authorship"
 	"github.com/voocel/ainovel-cli/internal/bootstrap"
 	"github.com/voocel/ainovel-cli/internal/charvector"
@@ -24,6 +25,7 @@ import (
 	"github.com/voocel/ainovel-cli/internal/nlcommander"
 	"github.com/voocel/ainovel-cli/internal/novelanalyzer"
 	"github.com/voocel/ainovel-cli/internal/publisher"
+	"github.com/voocel/ainovel-cli/internal/resolver"
 	"github.com/voocel/ainovel-cli/internal/rules"
 	"github.com/voocel/ainovel-cli/internal/server"
 	"github.com/voocel/ainovel-cli/internal/stylepreset"
@@ -74,6 +76,10 @@ func main() {
 			os.Exit(nlcommander.Command(os.Args[2:]))
 		case "universe", "mcu":
 			os.Exit(universe.Command(os.Args[2:]))
+		case "resolve", "fix-logic":
+			os.Exit(resolver.Command(os.Args[2:]))
+		case "arena", "benchmark":
+			os.Exit(arena.Command(os.Args[2:]))
 		}
 	}
 

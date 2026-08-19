@@ -196,6 +196,32 @@ Tự động phát hiện các nghịch lý thời gian (Time Paradoxes) hoặc 
 ainovel-cli universe --check-canon --dir ./novel
 ```
 
+---
+
+## 13. Tự Động Phát Hiện & Sửa Lỗi Logic Cốt Truyện (`resolve` / `fix-logic`)
+
+Tự động quét các chương đã viết để phát hiện mâu thuẫn logic, lỗ hổng cốt truyện hoặc nhân vật hành xử bất hợp lý, sau đó tạo và áp dụng kế hoạch sửa lỗi phẫu thuật:
+
+```bash
+# Quét phát hiện mâu thuẫn logic cốt truyện
+ainovel-cli resolve --dir ./novel
+
+# Áp dụng tự động kế hoạch sửa chữa mâu thuẫn theo mã ID
+ainovel-cli resolve --fix "pdx-len-1" --dir ./novel
+```
+
+---
+
+## 14. Sàn Đấu So Sánh Đa Mô Hình LLM (`arena` / `benchmark`)
+
+Cho phép chạy thử nghiệm và so sánh song song chất lượng văn xuôi giữa 2 mô hình LLM khác nhau (ví dụ Claude 3.5 Sonnet vs DeepSeek V3) trên cùng 1 đề bài/chương để tìm ra mô hình xuất sắc nhất:
+
+```bash
+# So sánh văn phong giữa 2 mô hình
+ainovel-cli arena --prompt "Viết một phân cảnh đối thoại kịch tính tại phòng thí nghiệm" --model-a "claude-3-5-sonnet" --model-b "deepseek-v3"
+```
+
+
 
 
 
