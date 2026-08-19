@@ -101,19 +101,51 @@ ainovel-cli webui --dir ./novel --port 3000
 
 ---
 
-## 9. Quản Lý Phiên Bản Git Tự Động (`git`)
+## 9. Quản Lý Phiên Bản Git & Quy Trình Phát Triển Tác Phẩm (`git`)
 
-Tự động hóa toàn bộ việc sao lưu, gắn nhãn mốc lịch sử và commit từng chương bản thảo vào Git Version Control:
+Tự động hóa và quản lý quy trình phát triển tác phẩm theo mô hình Git chuyên nghiệp:
 
+### a) Phân Nhánh & Chuyển Nhánh (Branching & Checkout):
 ```bash
-# Kiểm tra trạng thái Git repository
-ainovel-cli git --dir ./novel
+# Xem danh sách các nhánh
+ainovel-cli git --list-branches --dir ./novel
 
-# Khởi tạo Git repo cho tác phẩm
-ainovel-cli git --init --dir ./novel
+# Tạo nhánh Git mới
+ainovel-cli git --create-branch "feat/arc2-rebellion" --dir ./novel
 
-# Tạo nhãn mốc hoàn thành Quyển 1
-ainovel-cli git --tag "vol1-complete" --dir ./novel
+# Chuyển sang nhánh chỉ định
+ainovel-cli git --checkout "main" --dir ./novel
 ```
+
+### b) Quản Lý Nhiệm Vụ Cốt Truyện (Doing Issues):
+```bash
+# Tạo một Issue nhiệm vụ mới
+ainovel-cli git --create-issue "Đại tu diễn biến trận đánh Hồi 2" --desc "Chỉnh sửa nhịp kịch tính và phục bút" --dir ./novel
+
+# Xem danh sách Issues
+ainovel-cli git --list-issues --dir ./novel
+
+# Bắt đầu làm Issue (tạo nhánh feat/ mới)
+ainovel-cli git --start-issue "ISSUE-1" --make-feat --dir ./novel
+
+# Bắt đầu làm Issue trực tiếp trên main (nếu không tạo nhánh feat)
+ainovel-cli git --start-issue "ISSUE-1" --make-feat=false --dir ./novel
+```
+
+### c) Thẩm Định & Gộp Nhánh (Pull Request Review & Merge):
+```bash
+# Mở một Pull Request mới để kiểm duyệt
+ainovel-cli git --create-pr "Đại tu Hồi 2" --source "feat/issue-1-dai-tu" --target "main" --dir ./novel
+
+# Xem danh sách PRs
+ainovel-cli git --list-prs --dir ./novel
+
+# Biên tập viên / Tác giả Thẩm định & Phê duyệt PR
+ainovel-cli git --review-pr "PR-1" --approve --comment "Bản thảo đạt chuẩn thẩm mỹ, nhịp kịch tính tốt" --dir ./novel
+
+# Gộp nhánh PR đã duyệt vào main
+ainovel-cli git --merge-pr "PR-1" --dir ./novel
+```
+
 
 

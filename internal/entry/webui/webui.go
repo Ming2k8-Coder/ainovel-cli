@@ -123,9 +123,17 @@ func Run(cfg bootstrap.Config, bundle assets.Bundle, opts Options) error {
 		w.Header().Set("Content-Type", "application/json")
 		statusStr, _ := git.Status()
 		historyStr, _ := git.History()
+		branches, current, _ := git.ListBranches()
+		issues, _ := git.LoadIssues()
+		prs, _ := git.LoadPRs()
+
 		_ = json.NewEncoder(w).Encode(map[string]any{
-			"status":  statusStr,
-			"history": historyStr,
+			"status":   statusStr,
+			"history":  historyStr,
+			"branches": branches,
+			"current":  current,
+			"issues":   issues,
+			"prs":      prs,
 		})
 	})
 
