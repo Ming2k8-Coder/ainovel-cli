@@ -24,6 +24,7 @@ import (
 	"github.com/voocel/ainovel-cli/internal/publisher"
 	"github.com/voocel/ainovel-cli/internal/rules"
 	"github.com/voocel/ainovel-cli/internal/server"
+	"github.com/voocel/ainovel-cli/internal/stylepreset"
 	buildversion "github.com/voocel/ainovel-cli/internal/version"
 )
 
@@ -62,6 +63,8 @@ func main() {
 			os.Exit(gitmgr.Command(os.Args[2:]))
 		case "webui", "dashboard":
 			os.Exit(webui.Command(os.Args[2:]))
+		case "style", "styles":
+			os.Exit(stylepreset.Command(os.Args[2:]))
 		}
 	}
 
