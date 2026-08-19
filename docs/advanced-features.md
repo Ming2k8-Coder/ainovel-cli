@@ -147,5 +147,32 @@ ainovel-cli git --review-pr "PR-1" --approve --comment "Bản thảo đạt chu�
 ainovel-cli git --merge-pr "PR-1" --dir ./novel
 ```
 
+---
+
+## 10. Phân Tích Đặc Tả & Viết Tiếp Truyện Có Sẵn (`continue`)
+
+Cho phép phân tích một cuốn tiểu thuyết hoặc tệp đặc tả dự án sẵn có (như các thư mục server trong workspace `nexus-universe`), tự động trích xuất Hồ sơ Thế giới, Nhân vật, Dàn ý và Phong cách văn phong, sau đó thiết lập dự án viết tiếp từ Chương N+1:
+
+```bash
+# Phân tích thư mục truyện có sẵn trong workspace và thiết lập dự án viết tiếp
+ainovel-cli continue --source "../servers/HUST-sanbaka" --dir ./novel
+```
+
+---
+
+## 11. Bộ Điều Khiển Ngôn Ngữ Tự Nhiên (`cmd` / `do`)
+
+Cho phép tác giả ra lệnh bằng bất kỳ câu thoại tiếng Việt hoặc tiếng Anh tự nhiên nào. Hệ thống tự động phân tích ý định (Intent Recognition) và điều phối công việc tương ứng trong `ainovel-cli`:
+
+```bash
+# Ra lệnh bằng ngôn ngữ tự nhiên
+ainovel-cli cmd "Phân tích truyện HUST-sanbaka trong workspace rồi tiếp tục viết"
+
+ainovel-cli cmd "Mở WebUI trên cổng 3000 và xuất báo cáo bản quyền"
+
+ainovel-cli cmd "Chuyển phong cách prompt sang cyberpunk"
+```
+
+
 
 
