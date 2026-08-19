@@ -43,3 +43,49 @@ ainovel-cli publish --format mdx --dir ./novel --out ./dist/mdx
 # Gom toàn bộ tác phẩm thành một tệp Markdown hoàn chỉnh duy nhất
 ainovel-cli publish --format full-md --dir ./novel --out ./dist
 ```
+
+---
+
+## 4. Máy Chủ Xem Truyện Web Cục Bộ (`serve`)
+
+Khởi chạy máy chủ Web Reader với giao diện Dark Mode & Glassmorphic hiện đại tại `http://localhost:8080`, cho phép tác giả xem và đọc các chương truyện ngay trên trình duyệt:
+
+```bash
+ainovel-cli serve --dir ./novel --port 8080
+```
+
+---
+
+## 5. Mạng Lưới Quản Lý Phục Bút & Bí Ẩn (`foreshadow`)
+
+Theo dõi các manh mối đã gài, các nút thắt cốt truyện và các câu hỏi bí ẩn chưa giải quyết:
+
+```bash
+# Gài một chi tiết phục bút mới vào Chương 3
+ainovel-cli foreshadow --add "Nhân vật A giấu chìa khóa vạn năng trong viện bảo tàng" --chapter 3 --category mystery --dir ./novel
+
+# Đánh dấu tháo gỡ phục bút tại Chương 12
+ainovel-cli foreshadow --resolve "fs-12345" --chapter 12 --note "Nhân vật B tìm thấy chìa khóa" --dir ./novel
+```
+
+---
+
+## 6. Ma Trận Chỉ Số Tâm Lý & Quan Hệ Nhân Vật (`char-matrix`)
+
+Theo dõi mức độ tin tưởng, căng thẳng và trạng thái liên minh giữa các nhân vật chính:
+
+```bash
+# Cập nhật quan hệ giữa hai nhân vật
+ainovel-cli char-matrix -a "Nguyễn Văn A" -b "Trần Thị B" --trust 75 --tension 20 --alliance ally --chapter 5 --dir ./novel
+```
+
+---
+
+## 7. Bảng Phân Tích Chi Phí Token & Hiệu Suất (`stats`)
+
+Xuất bảng phân tích toàn diện về lượng Token đã tiêu thụ, chi phí API ước tính (USD), và chỉ số kiểm soát nghệ thuật của tác giả:
+
+```bash
+ainovel-cli stats --dir ./novel
+```
+

@@ -9,15 +9,19 @@ import (
 
 	"github.com/voocel/ainovel-cli/assets"
 	"github.com/voocel/ainovel-cli/internal/abselect"
+	"github.com/voocel/ainovel-cli/internal/analytics"
 	"github.com/voocel/ainovel-cli/internal/authorship"
 	"github.com/voocel/ainovel-cli/internal/bootstrap"
+	"github.com/voocel/ainovel-cli/internal/charvector"
 	"github.com/voocel/ainovel-cli/internal/cryptoaudit"
 	"github.com/voocel/ainovel-cli/internal/entry/headless"
 	"github.com/voocel/ainovel-cli/internal/entry/startup"
 	"github.com/voocel/ainovel-cli/internal/entry/tui"
 	"github.com/voocel/ainovel-cli/internal/eval"
+	"github.com/voocel/ainovel-cli/internal/foreshadow"
 	"github.com/voocel/ainovel-cli/internal/publisher"
 	"github.com/voocel/ainovel-cli/internal/rules"
+	"github.com/voocel/ainovel-cli/internal/server"
 	buildversion "github.com/voocel/ainovel-cli/internal/version"
 )
 
@@ -44,6 +48,14 @@ func main() {
 			os.Exit(cryptoaudit.Command(os.Args[2:]))
 		case "publish", "export-mdx":
 			os.Exit(publisher.Command(os.Args[2:]))
+		case "serve", "reader":
+			os.Exit(server.Command(os.Args[2:]))
+		case "foreshadow", "mysteries":
+			os.Exit(foreshadow.Command(os.Args[2:]))
+		case "char-matrix", "char-vector":
+			os.Exit(charvector.Command(os.Args[2:]))
+		case "stats", "analytics":
+			os.Exit(analytics.Command(os.Args[2:]))
 		}
 	}
 
