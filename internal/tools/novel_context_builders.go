@@ -1,6 +1,7 @@
 package tools
 
 import (
+	"fmt"
 	"slices"
 
 	"github.com/voocel/ainovel-cli/internal/domain"
@@ -12,6 +13,7 @@ type contextBuildState struct {
 	profile         domain.ContextProfile
 	progress        *domain.Progress
 	runMeta         *domain.RunMeta
+	outline         []domain.OutlineEntry
 	currentEntry    *domain.OutlineEntry
 	chapterPlan     *domain.ChapterPlan
 	storyThreads    []domain.RecallItem
@@ -19,6 +21,7 @@ type contextBuildState struct {
 	relationships   []domain.RelationshipEntry
 	allStateChanges []domain.StateChange
 	styleRules      *domain.WritingStyleRules
+	cast            []domain.CastEntry
 }
 
 type chapterContextEnvelope struct {
@@ -32,6 +35,29 @@ type architectContextEnvelope struct {
 	Planning   map[string]any
 	Foundation map[string]any
 	References map[string]any
+}
+
+// planningVolumeOutline 是 Architect 的只读结构投影。全局保留卷弧骨架，
+// 仅当前弧或显式聚焦弧携带章节详情，避免章节详情随规划规模线性膨胀。
+type planningVolumeOutline struct {
+	Index int                  `json:"index"`
+	Title string               `json:"title"`
+	Theme string               `json:"theme"`
+	Final bool                 `json:"final,omitempty"`
+	Arcs  []planningArcOutline `json:"arcs"`
+}
+
+type planningArcOutline struct {
+	Index             int                   `json:"index"`
+	Title             string                `json:"title"`
+	Goal              string                `json:"goal"`
+	Status            string                `json:"status"`
+	StartChapter      int                   `json:"start_chapter,omitempty"`
+	EndChapter        int                   `json:"end_chapter,omitempty"`
+	ChapterCount      int                   `json:"chapter_count,omitempty"`
+	EstimatedChapters int                   `json:"estimated_chapters,omitempty"`
+	Chapters          []domain.OutlineEntry `json:"chapters,omitempty"`
+	ChaptersOmitted   bool                  `json:"chapters_omitted,omitempty"`
 }
 
 func newChapterContextEnvelope() chapterContextEnvelope {
@@ -133,7 +159,7 @@ func (t *ContextTool) buildProgressStatus(result map[string]any, reads *contextR
 //
 // 注入策略：只给 LLM 看 structured + preferences——这两项才是创作时需要遵循的偏好。
 // sources / conflicts 是诊断信息（用户冲突排查），不进 LLM；由 CLI 启动诊断面板按需展示。
-func (t *ContextTool) buildUserRules(result map[string]any, reads *contextReads) {
+func (t *ContextTool) buildUserRules(result map[string]any, reads *contextReads) *rules.Snapshot {
 	snap, err := t.store.UserRules.Load()
 	if err != nil {
 		reads.require("user_rules", err)
@@ -149,6 +175,23 @@ func (t *ContextTool) buildUserRules(result map[string]any, reads *contextReads)
 		result["working_memory"] = working
 	}
 	working["user_rules"] = snap.Payload()
+	return snap
+}
+
+func (t *ContextTool) buildRuleViolations(result map[string]any, chapter int, snap *rules.Snapshot, reads *contextReads) {
+	record, err := t.store.ChapterRecords.Load(chapter)
+	if err != nil {
+		reads.require("chapter_record", err)
+		return
+	}
+	if record == nil {
+		return
+	}
+	violations := rules.Lint(record.Content)
+	violations = append(violations, rules.Check(record.Content, snap.Structured)...)
+	if len(violations) > 0 {
+		result["rule_violations"] = violations
+	}
 }
 
 func (t *ContextTool) buildSimulationProfile(result map[string]any, sectionKey string, reads *contextReads) {
@@ -190,11 +233,6 @@ func (t *ContextTool) buildBaseContext(result map[string]any, reads *contextRead
 	} else {
 		reads.require("premise", err)
 	}
-	if outline, err := t.store.Outline.LoadOutline(); err == nil && outline != nil {
-		result["outline"] = outline
-	} else {
-		reads.require("outline", err)
-	}
 	if rules, err := t.store.World.LoadWorldRules(); err == nil && len(rules) > 0 {
 		result["world_rules"] = rules
 	} else {
@@ -214,6 +252,10 @@ func (t *ContextTool) prepareChapterContext(chapter int, envelope *chapterContex
 	reads.require("run_meta", err)
 	state.progress = progress
 	state.runMeta = runMeta
+	if progress != nil && len(progress.CompletedChapters) > 0 {
+		state.cast, err = t.store.BuildCast(progress.CompletedChapters)
+		reads.require("supporting_cast", err)
+	}
 
 	if runMeta != nil && runMeta.PlanningTier != "" {
 		envelope.Episodic["planning_tier"] = runMeta.PlanningTier
@@ -225,11 +267,12 @@ func (t *ContextTool) prepareChapterContext(chapter int, envelope *chapterContex
 		state.profile.Layered = false
 	}
 
-	currentEntry, currentEntryErr := t.store.Outline.GetChapterOutline(chapter)
-	if currentEntryErr == nil && currentEntry != nil {
+	outline, outlineErr := t.store.Outline.LoadOutline()
+	reads.require("outline", outlineErr)
+	state.outline = outline
+	currentEntry := findOutlineEntry(outline, chapter)
+	if currentEntry != nil {
 		envelope.Working["current_chapter_outline"] = currentEntry
-	} else {
-		reads.require("current_chapter_outline", currentEntryErr)
 	}
 	state.currentEntry = currentEntry
 
@@ -389,7 +432,7 @@ func (t *ContextTool) buildStyleStats(envelope *chapterContextEnvelope, state co
 	stats, err := t.styleStats.Snapshot(
 		state.progress.CompletedChapters,
 		titles,
-		t.styleStopwords(reads),
+		t.styleStopwords(state.cast, reads),
 	)
 	if err != nil {
 		reads.warn("style_stats", err)
@@ -402,7 +445,7 @@ func (t *ContextTool) buildStyleStats(envelope *chapterContextEnvelope, state co
 }
 
 // styleStopwords 收集角色名与别名供短语挖掘过滤——出场人名天然高频，不是文风问题。
-func (t *ContextTool) styleStopwords(reads *contextReads) []string {
+func (t *ContextTool) styleStopwords(cast []domain.CastEntry, reads *contextReads) []string {
 	var words []string
 	if chars, err := t.store.Characters.Load(); err == nil {
 		for _, c := range chars {
@@ -412,19 +455,15 @@ func (t *ContextTool) styleStopwords(reads *contextReads) []string {
 	} else {
 		reads.warn("style_stats.characters", err)
 	}
-	if cast, err := t.store.Cast.RecentActive(50); err == nil {
-		for _, e := range cast {
-			words = append(words, e.Name)
-			words = append(words, e.Aliases...)
-		}
-	} else {
-		reads.warn("style_stats.cast", err)
+	for _, entry := range domain.RecentCast(cast, 50) {
+		words = append(words, entry.Name)
 	}
 	return words
 }
 
 func (t *ContextTool) buildChapterWorkingMemory(envelope *chapterContextEnvelope, state contextBuildState, reads *contextReads) {
-	if next, err := t.store.Outline.GetChapterOutline(state.chapter + 1); err == nil && next != nil {
+	t.buildOutlineWindow(envelope.Working, state, reads)
+	if next := findOutlineEntry(state.outline, state.chapter+1); next != nil {
 		envelope.Working["next_chapter_outline"] = next
 	}
 
@@ -483,6 +522,42 @@ func (t *ContextTool) buildChapterWorkingMemory(envelope *chapterContextEnvelope
 	}
 }
 
+// buildOutlineWindow 为 Writer/Editor 保留与当前任务直接相关的大纲，而不是注入
+// 随全书增长的完整扁平大纲。分层模式使用当前弧；非分层模式使用最近一个评审周期。
+func (t *ContextTool) buildOutlineWindow(working map[string]any, state contextBuildState, reads *contextReads) {
+	outline := state.outline
+	if len(outline) == 0 {
+		return
+	}
+
+	start := max(1, state.chapter-domain.ReviewInterval+1)
+	end := min(state.chapter, len(outline))
+	if state.profile.Layered {
+		boundary, err := t.store.Outline.CheckArcBoundary(state.chapter)
+		if err != nil {
+			reads.require("outline_window.arc_boundary", err)
+			return
+		}
+		if boundary == nil {
+			return
+		}
+		start = boundary.StartChapter
+		end = min(boundary.EndChapter, len(outline))
+	}
+	if start <= end {
+		working["outline_window"] = outline[start-1 : end]
+	}
+}
+
+func findOutlineEntry(outline []domain.OutlineEntry, chapter int) *domain.OutlineEntry {
+	for i := range outline {
+		if outline[i].Chapter == chapter {
+			return &outline[i]
+		}
+	}
+	return nil
+}
+
 func (t *ContextTool) buildChapterSelectedMemory(envelope *chapterContextEnvelope, state contextBuildState, reads *contextReads) {
 	if len(state.storyThreads) > 0 {
 		envelope.Selected["story_threads"] = state.storyThreads
@@ -497,9 +572,9 @@ func (t *ContextTool) buildChapterEpisodicMemory(envelope *chapterContextEnvelop
 		envelope.Episodic["foreshadow_ledger"] = state.foreshadow
 	}
 
-	// 配角名册：召回最近活跃的次要角色，让 Writer 在引入旧角色时能保持口吻/定位一致
+	// 召回最近活跃的次要角色，让 Writer 在引入旧角色时能保持口吻/定位一致。
 	// 不召回所有条目（长篇会膨胀），只给最近活跃的前 N 个，按 LastSeenChapter 倒序
-	if recentCast, err := t.store.Cast.RecentActive(15); err == nil && len(recentCast) > 0 {
+	if recentCast := domain.RecentCast(state.cast, 15); len(recentCast) > 0 {
 		simplified := make([]map[string]any, 0, len(recentCast))
 		for _, e := range recentCast {
 			item := map[string]any{
@@ -511,14 +586,9 @@ func (t *ContextTool) buildChapterEpisodicMemory(envelope *chapterContextEnvelop
 			if e.BriefRole != "" {
 				item["brief_role"] = e.BriefRole
 			}
-			if len(e.Aliases) > 0 {
-				item["aliases"] = e.Aliases
-			}
 			simplified = append(simplified, item)
 		}
 		envelope.Episodic["recent_cast"] = simplified
-	} else if err != nil {
-		reads.warn("recent_cast", err)
 	}
 
 	if state.progress != nil && state.progress.TotalChapters > 30 && state.currentEntry != nil {
@@ -614,26 +684,52 @@ func (t *ContextTool) buildChapterReferencePack(envelope *chapterContextEnvelope
 	envelope.References["references"] = t.writerReferences(state.chapter)
 }
 
-func (t *ContextTool) buildArchitectContext(result map[string]any, reads *contextReads) {
+func (t *ContextTool) buildArchitectContext(result map[string]any, reads *contextReads, volume, arc int) {
 	envelope := newArchitectContextEnvelope()
 	result["memory_policy"] = domain.NewArchitectMemoryPolicy()
-	t.buildArchitectPlanning(&envelope, reads)
+	t.buildArchitectPlanning(&envelope, reads, volume, arc)
 	t.buildArchitectFoundation(&envelope, reads)
 	t.buildArchitectReferences(&envelope, reads)
 	envelope.apply(result)
 }
 
-func (t *ContextTool) buildArchitectPlanning(envelope *architectContextEnvelope, reads *contextReads) {
+func (t *ContextTool) buildArchitectPlanning(envelope *architectContextEnvelope, reads *contextReads, requestedVolume, requestedArc int) {
 	runMeta, err := t.store.RunMeta.Load()
 	reads.require("run_meta", err)
 	if runMeta != nil && runMeta.PlanningTier != "" {
 		envelope.Planning["planning_tier"] = runMeta.PlanningTier
 	}
+	progress, progressErr := t.store.Progress.Load()
+	reads.require("progress_for_planning", progressErr)
 
-	var layered []domain.VolumeOutline
-	if l, err := t.store.Outline.LoadLayeredOutline(); err == nil && len(l) > 0 {
-		layered = l
-		envelope.Planning["layered_outline"] = layered
+	layered, err := t.store.Outline.LoadLayeredOutline()
+	reads.require("layered_outline", err)
+	if err != nil {
+		return
+	}
+	if len(layered) > 0 {
+		latestCompleted := 0
+		if progress != nil {
+			latestCompleted = progress.LatestCompleted()
+		}
+		if requestedVolume > 0 {
+			_, ok := findPlanningArc(layered, requestedVolume, requestedArc)
+			if !ok {
+				reads.fail(fmt.Errorf("planning scope v%da%d not found", requestedVolume, requestedArc))
+				return
+			}
+		}
+		detailVolume, detailArc := planningDetailScope(layered, progress, requestedVolume, requestedArc)
+		outline, detailIncluded := projectLayeredOutlineForPlanning(
+			layered,
+			latestCompleted,
+			detailVolume,
+			detailArc,
+		)
+		envelope.Planning["layered_outline"] = outline
+		if detailIncluded {
+			envelope.Planning["outline_detail"] = map[string]int{"volume": detailVolume, "arc": detailArc}
+		}
 		var skeletonArcs []map[string]any
 		for _, v := range layered {
 			for _, a := range v.Arcs {
@@ -652,9 +748,10 @@ func (t *ContextTool) buildArchitectPlanning(envelope *architectContextEnvelope,
 			envelope.Planning["skeleton_arcs"] = skeletonArcs
 		}
 	} else {
-		reads.require("layered_outline", err)
-	}
-	if len(layered) == 0 {
+		if requestedVolume > 0 {
+			reads.fail(fmt.Errorf("planning scope requires a layered outline"))
+			return
+		}
 		if outline, err := t.store.Outline.LoadOutline(); err == nil && len(outline) > 0 {
 			envelope.Planning["outline"] = outline
 		} else {
@@ -676,20 +773,96 @@ func (t *ContextTool) buildArchitectPlanning(envelope *architectContextEnvelope,
 	}
 	// 卷摘要承接已完成卷；当前卷的弧摘要承接最近实际剧情。扩弧时两者与
 	// 骨架目标同时交给 Architect，让模型自行决定保留还是修订未写计划。
-	if progress, err := t.store.Progress.Load(); err == nil && progress != nil && progress.CurrentVolume > 0 {
+	if progressErr == nil && progress != nil && progress.CurrentVolume > 0 {
 		if arcSummaries, err := t.store.Summaries.LoadArcSummaries(progress.CurrentVolume); err == nil && len(arcSummaries) > 0 {
 			envelope.Planning["arc_summaries"] = arcSummaries
 		} else {
 			reads.require("arc_summaries", err)
 		}
 	} else {
-		reads.require("progress_for_arc_summaries", err)
+		reads.require("progress_for_arc_summaries", progressErr)
 	}
 
 	// completion_signals 把"全书是否该结尾"的关键事实集中呈现，
 	// 让架构师在裁定 complete_book / append_volume 时一眼看到对照面。
 	// 散落在 progress / compass / foreshadow / layered_outline 里靠 LLM 脑算容易漏。
 	envelope.Planning["completion_signals"] = t.completionSignals(layered, compass, reads)
+}
+
+// planningDetailScope 选择本轮唯一携带完整章节的大纲弧。显式请求优先；
+// 默认使用当前进度弧，状态尚未建立时选择首个已展开弧。
+func planningDetailScope(volumes []domain.VolumeOutline, progress *domain.Progress, requestedVolume, requestedArc int) (int, int) {
+	if requestedVolume > 0 {
+		return requestedVolume, requestedArc
+	}
+	if progress != nil {
+		if arc, ok := findPlanningArc(volumes, progress.CurrentVolume, progress.CurrentArc); ok && arc.IsExpanded() {
+			return progress.CurrentVolume, progress.CurrentArc
+		}
+	}
+	for _, volume := range volumes {
+		for _, arc := range volume.Arcs {
+			if arc.IsExpanded() {
+				return volume.Index, arc.Index
+			}
+		}
+	}
+	return 0, 0
+}
+
+func findPlanningArc(volumes []domain.VolumeOutline, volumeIndex, arcIndex int) (*domain.ArcOutline, bool) {
+	for vi := range volumes {
+		if volumes[vi].Index != volumeIndex {
+			continue
+		}
+		for ai := range volumes[vi].Arcs {
+			if volumes[vi].Arcs[ai].Index == arcIndex {
+				return &volumes[vi].Arcs[ai], true
+			}
+		}
+	}
+	return nil, false
+}
+
+func projectLayeredOutlineForPlanning(volumes []domain.VolumeOutline, latestCompleted, detailVolume, detailArc int) ([]planningVolumeOutline, bool) {
+	projected := make([]planningVolumeOutline, 0, len(volumes))
+	chapter := 1
+	detailIncluded := false
+	for _, volume := range volumes {
+		pv := planningVolumeOutline{
+			Index: volume.Index, Title: volume.Title, Theme: volume.Theme, Final: volume.Final,
+			Arcs: make([]planningArcOutline, 0, len(volume.Arcs)),
+		}
+		for _, arc := range volume.Arcs {
+			pa := planningArcOutline{
+				Index: arc.Index, Title: arc.Title, Goal: arc.Goal,
+				EstimatedChapters: arc.EstimatedChapters,
+			}
+			if len(arc.Chapters) == 0 {
+				pa.Status = "skeleton"
+				pv.Arcs = append(pv.Arcs, pa)
+				continue
+			}
+			pa.StartChapter = chapter
+			pa.EndChapter = chapter + len(arc.Chapters) - 1
+			pa.ChapterCount = len(arc.Chapters)
+			if pa.EndChapter <= latestCompleted {
+				pa.Status = "completed"
+			} else {
+				pa.Status = "expanded"
+			}
+			if volume.Index == detailVolume && arc.Index == detailArc {
+				pa.Chapters = arc.Chapters
+				detailIncluded = true
+			} else {
+				pa.ChaptersOmitted = true
+			}
+			chapter = pa.EndChapter + 1
+			pv.Arcs = append(pv.Arcs, pa)
+		}
+		projected = append(projected, pv)
+	}
+	return projected, detailIncluded
 }
 
 func (t *ContextTool) completionSignals(layered []domain.VolumeOutline, compass *domain.StoryCompass, reads *contextReads) map[string]any {
@@ -771,7 +944,7 @@ func (t *ContextTool) buildArchitectFoundation(envelope *architectContextEnvelop
 		reads.require("foundation_status", err)
 	}
 	// Writer 反馈池:commit_chapter 落盘的大纲偏离/建议,规划下一弧/卷时必须参考;
-	// expand_arc / append_volume / update_compass 成功后自动清空(已消费)。
+	// expand_next_arc / append_volume / update_compass 成功后自动清空(已消费)。
 	if fbs, err := t.store.Outline.LoadPendingOutlineFeedback(); err == nil && len(fbs) > 0 {
 		envelope.Foundation["writer_feedback"] = fbs
 	} else {

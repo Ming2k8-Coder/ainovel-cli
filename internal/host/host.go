@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/voocel/agentcore"
+	"github.com/voocel/agentcore/subagent"
 	"github.com/voocel/ainovel-cli/assets"
 	"github.com/voocel/ainovel-cli/internal/agents"
 	"github.com/voocel/ainovel-cli/internal/agents/ctxpack"
@@ -135,18 +136,20 @@ func New(cfg bootstrap.Config, bundle assets.Bundle, options ...NewOption) (*Hos
 
 	slog.Info("启动", "module", "boot", "provider", cfg.Provider, "model", cfg.ModelName, "output", cfg.OutputDir)
 
-	// 起后台 goroutine 从 OpenRouter 刷新模型元数据（窗口/价格），磁盘缓存 24h。
-	modelreg.StartPricingRefresh(modelreg.DefaultRegistry(), bootstrap.DefaultConfigDir())
-
 	store := storepkg.NewStore(cfg.OutputDir)
 	if err := store.Init(); err != nil {
 		return nil, fmt.Errorf("init store: %w", err)
+	}
+	if err := upgradeProject(store); err != nil {
+		return nil, err
 	}
 	// RunMeta 是所有控制语义的事实源，必须在构造模型/后台任务之前完成校验。
 	// 未知 advance mode 直接返回结构化错误；禁止猜测降级后继续写盘。
 	if err := store.RunMeta.Init(cfg.Style, cfg.Provider, cfg.ModelName); err != nil {
 		return nil, fmt.Errorf("init run meta: %w", err)
 	}
+	// 起后台 goroutine 从 OpenRouter 刷新模型元数据（窗口/价格），磁盘缓存 24h。
+	modelreg.StartPricingRefresh(modelreg.DefaultRegistry(), bootstrap.DefaultConfigDir())
 
 	models, err := bootstrap.NewModelSet(cfg)
 	if err != nil {
@@ -210,6 +213,9 @@ func New(cfg bootstrap.Config, bundle assets.Bundle, options ...NewOption) (*Hos
 	}
 	h.runCtx, h.runCancel = context.WithCancel(context.Background())
 	h.observer = newObserver(store, h.emitEvent, h.emitDelta, h.emitClear)
+	workers.SetEventObserver(func(meta subagent.RunMeta, ev agentcore.Event) {
+		h.observer.handleWorkerEvent(meta.Agent, ev)
+	})
 	// 宿主侧 Arbiter 与 Worker 共用同一条 ToolProgress → observer → 工作台链路。
 	h.runCtx = agentcore.WithToolProgress(h.runCtx, h.observer.workerProgress)
 	if cfg.Notify.IsEnabled() {
@@ -362,9 +368,6 @@ func (h *Host) StartPrepared(rawRequirement string) error {
 		return fmt.Errorf("prompt is required")
 	}
 	if err := h.refuseNewBookOverExisting(); err != nil {
-		return err
-	}
-	if err := upgradeProject(h.store); err != nil {
 		return err
 	}
 	if err := h.budget.Refuse(); err != nil {
@@ -548,10 +551,6 @@ func (h *Host) Resume() (string, error) {
 		return "", fmt.Errorf("%s进行中，请先完成后再恢复创作", ex)
 	}
 	h.mu.Unlock()
-	if err := upgradeProject(h.store); err != nil {
-		return "", err
-	}
-
 	label, err := resumeLabel(h.store)
 	if err != nil {
 		return "", err
@@ -1319,9 +1318,13 @@ func (h *Host) fillDetails(snap *UISnapshot, progress *domain.Progress) {
 			snap.Characters = append(snap.Characters, label)
 		}
 	}
-	if ledger, _ := h.store.Cast.Load(); len(ledger) > 0 {
-		snap.SupportingCount = len(ledger)
-		recent, _ := h.store.Cast.RecentActive(5)
+	if progress != nil && len(progress.CompletedChapters) > 0 {
+		cast, err := h.store.BuildCast(progress.CompletedChapters)
+		if err != nil {
+			slog.Warn("配角视图投影失败", "module", "host.snapshot", "err", err)
+		}
+		snap.SupportingCount = len(cast)
+		recent := domain.RecentCast(cast, 5)
 		for _, e := range recent {
 			label := e.Name
 			if e.BriefRole != "" {

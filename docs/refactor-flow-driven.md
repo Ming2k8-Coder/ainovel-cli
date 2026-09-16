@@ -9,5 +9,5 @@ Tài liệu này ghi lại quá trình cải tiến hệ thống điều phối 
 - **Chữ ký hàm `flow.Route(state State) -> *Instruction`**:
   - Nhận vào ảnh chụp trạng thái thực tế từ Store.
   - Không thực hiện bất kỳ thao tác đọc ghi đĩa (I/O) nào bên trong hàm.
-  - Trả về con trỏ chỉ thị (`Instruction`) rõ ràng cho biết tác tử nào tiếp quản và thực hiện nhiệm vụ gì.
+  - Trả về con trỏ chỉ thị (`Instruction`) rõ ràng cho biết tác tử nào tiếp quản và thực hiện nhiệm vụ gì (ví dụ: `writer` viết chương mới, `editor` thẩm định, hoặc `architect_long` gọi `expand_next_arc` để mở rộng Hồi tiếp theo).
 - **Kiểm Thử Vét Cạn**: Hàm được kiểm thử hồi quy trên hơn 120.000 tổ hợp trạng thái khác nhau, đảm bảo mọi tình huống ranh giới đều có chỉ thị định tính chuẩn xác và loại bỏ hoàn toàn chi phí LLM cho việc điều hướng.

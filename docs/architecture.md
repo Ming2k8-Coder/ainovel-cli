@@ -40,6 +40,7 @@ Mặt phẳng Ngữ nghĩa:  arbiter.Collect* ➔ arbiter.Decide* ➔ XxxDecisio
 Mọi thao tác đọc ghi với hệ thống tập tin, tiến độ (`Progress`) và điểm kiểm soát (`Checkpoint`) đều phải thông qua các Công cụ (Tools) được chuẩn hóa:
 - Tập tin đơn lẻ áp dụng cơ chế ghi nguyên tử `temp + fsync + rename` để tránh ghi đè dở dang khi mất điện/crash.
 - Ghi nhiều tập tin liên đới áp dụng mô hình giao dịch Saga (`PendingCommit`) có thể phục hồi.
+- Thao tác cấu trúc (như `expand_next_arc`, `append_volume`) có tính lũy đẳng và xử lý rõ ràng các thông điệp lỗi.
 - Mọi bước thực thi đều kiểm tra điều kiện tiên quyết và điều kiện hậu nghiệm chặt chẽ.
 
 ---
@@ -50,6 +51,7 @@ Giao diện người dùng (TUI), nhật ký chẩn đoán (`diag`) và bộ the
 - Chỉ đọc dữ liệu, không tự ý thay đổi dữ liệu trong Store.
 - Không can thiệp hoặc làm thay đổi logic điều phối của Engine.
 - Phân tách rõ: dữ liệu chi tiết cho nhật ký (`Detail`) và thông tin ngắn gọn, súc tích cho màn hình hiển thị (`Summary`).
+- Vòng đời Worker phân tách rõ giữa thời gian suy luận của mô hình (MODEL) và thời gian thực thi công cụ (TOOL).
 
 ---
 
@@ -76,11 +78,11 @@ Giao diện người dùng (TUI), nhật ký chẩn đoán (`diag`) và bộ the
 [Architect · Writer · Editor] (Mỗi tác tử có ngữ cảnh và mô hình độc lập)
         │ Gọi các Công cụ (Tools)
 [Tools]  novel_context · read_chapter · plan_chapter · draft_chapter · edit_chapter
-         check_consistency · commit_chapter · save_review · save_arc_summary · save_foundation
+         check_consistency · commit_chapter · save_review · save_arc_summary · save_foundation · expand_next_arc
         │ Ghi nguyên tử vào hệ thống tập tin
 [Store: Hệ Thống Tập Tin]
    Progress · Checkpoints · Outline · Drafts · Summaries · Characters · World
-   · Signals · Decisions (Nhật ký phán quyết) · Phản hồi dàn ý · Vi phạm quy tắc
+   · Signals · Decisions (Nhật ký phán quyết) · Phản hồi dàn ý · Chiếu dữ liệu nhân vật phụ
 ```
 
 ---
