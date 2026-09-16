@@ -106,7 +106,7 @@ func Validate(facts domain.ChapterFacts) error {
 		if strings.TrimSpace(change.CharacterA) == "" || strings.TrimSpace(change.CharacterB) == "" || strings.TrimSpace(change.Relation) == "" {
 			return fmt.Errorf("relationship_changes[%d] requires character_a, character_b and relation", i)
 		}
-		if change.CharacterA == change.CharacterB {
+		if strings.TrimSpace(change.CharacterA) == strings.TrimSpace(change.CharacterB) {
 			return fmt.Errorf("relationship_changes[%d] cannot relate a character to itself", i)
 		}
 	}

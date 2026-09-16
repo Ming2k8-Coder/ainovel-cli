@@ -53,14 +53,41 @@ func TestLoad_NoOverrides(t *testing.T) {
 
 func TestInterventionPromptsKeepScopeContract(t *testing.T) {
 	prompts := loadPrompts()
-	for _, phrase := range []string{"上下文不等于修改授权", "最小充分范围", "分析范围不等于修改范围"} {
-		if !strings.Contains(prompts.ArbiterIntervention, phrase) {
-			t.Fatalf("Arbiter 干预提示缺少范围契约 %q", phrase)
+	arbiterRequirements := [][]string{
+		{"上下文不等于修改授权", "context does not constitute authorization to modify"},
+		{"最小充分范围", "minimal sufficient range"},
+		{"分析范围不等于修改范围", "analysis range does not equal edit range"},
+	}
+	for _, variants := range arbiterRequirements {
+		found := false
+		lowerArbiter := strings.ToLower(prompts.ArbiterIntervention)
+		for _, phrase := range variants {
+			if strings.Contains(lowerArbiter, strings.ToLower(phrase)) {
+				found = true
+				break
+			}
+		}
+		if !found {
+			t.Fatalf("Arbiter 干预提示缺少范围契约 %v", variants)
 		}
 	}
-	for _, phrase := range []string{"用户原始干预", "分析范围不等于修改范围", "最小充分章节集合"} {
-		if !strings.Contains(prompts.Editor, phrase) {
-			t.Fatalf("Editor 提示缺少范围契约 %q", phrase)
+
+	editorRequirements := [][]string{
+		{"用户原始干预", "raw user intervention"},
+		{"分析范围不等于修改范围", "analysis range does not equal edit range"},
+		{"最小充分章节集合", "minimal sufficient chapter set"},
+	}
+	for _, variants := range editorRequirements {
+		found := false
+		lowerEditor := strings.ToLower(prompts.Editor)
+		for _, phrase := range variants {
+			if strings.Contains(lowerEditor, strings.ToLower(phrase)) {
+				found = true
+				break
+			}
+		}
+		if !found {
+			t.Fatalf("Editor 提示缺少范围契约 %v", variants)
 		}
 	}
 }
@@ -166,7 +193,7 @@ func TestOverrideVoice_SharesAssemblyPath(t *testing.T) {
 		t.Fatal("占位符必须被消耗")
 	}
 	// 协议部分不受 voice 覆盖影响
-	if !strings.Contains(got, "## 执行协议") {
+	if !strings.Contains(got, "## 执行协议") && !strings.Contains(got, "## Execution Protocol") {
 		t.Fatal("协议模板不得被 voice 覆盖破坏")
 	}
 }
