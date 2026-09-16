@@ -4,7 +4,6 @@ package analytics
 
 import (
 	"fmt"
-	"os"
 	"path/filepath"
 
 	"github.com/voocel/ainovel-cli/internal/authorship"

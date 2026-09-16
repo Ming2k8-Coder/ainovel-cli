@@ -2,7 +2,6 @@ package authorship
 
 import (
 	"os"
-	"path/filepath"
 	"strings"
 	"testing"
 )

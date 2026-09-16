@@ -3,7 +3,6 @@ package arena
 import (
 	"flag"
 	"fmt"
-	"os"
 )
 
 // Command thực thi lệnh `ainovel-cli arena` hoặc `ainovel-cli benchmark`.
@@ -14,6 +13,7 @@ func Command(args []string) int {
 	modelA := fs.String("model-a", "claude-3-5-sonnet", "Tên mô hình A")
 	modelB := fs.String("model-b", "deepseek-v3", "Tên mô hình B")
 	_ = fs.Parse(args)
+	_ = dir
 
 	fmt.Printf("⚔️ Đang khởi chạy Sàn đấu Arena giữa [%s] và [%s]...\n", *modelA, *modelB)
 	fmt.Printf("🎯 Đề tài: %s\n\n", *prompt)

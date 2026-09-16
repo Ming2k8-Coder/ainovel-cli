@@ -79,8 +79,7 @@ func BuildDossier(dir, bookTitle, authorName string) (*Dossier, error) {
 	}
 
 	chaptersDir := filepath.Join(dir, "chapters")
-	entries, err := os.ReadDir(chaptersDir)
-	if err != nil && !os.IsNotExist(err) {
+	if _, err := os.ReadDir(chaptersDir); err != nil && !os.IsNotExist(err) {
 		return nil, fmt.Errorf("read chapters dir: %w", err)
 	}
 

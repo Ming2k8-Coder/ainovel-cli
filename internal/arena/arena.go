@@ -6,8 +6,6 @@ package arena
 import (
 	"context"
 	"fmt"
-	"os"
-	"path/filepath"
 	"strings"
 	"time"
 
@@ -81,27 +79,45 @@ func EvaluateDraft(draft string) float64 {
 }
 
 // RunBattle thực thi cuộc so tài giữa 2 mô hình LLM trên cùng 1 prompt.
-func (m *Manager) RunBattle(ctx context.Context, prompt string, modelA, modelB string, runnerA, runnerB agentcore.Model) (*BattleReport, error) {
+func (m *Manager) RunBattle(ctx context.Context, prompt string, modelA, modelB string, runnerA, runnerB agentcore.ChatModel) (*BattleReport, error) {
 	if prompt == "" {
 		prompt = "Hãy viết một đoạn đối thoại căng thẳng giữa 2 kỹ sư Cyberpunk tại phòng thí nghiệm Bách Khoa 1956."
 	}
 
 	startA := time.Now()
-	respA, errA := runnerA.Generate(ctx, []agentcore.Message{{Role: "user", Content: prompt}})
+	respA, errA := runnerA.Generate(ctx, []agentcore.Message{
+		{
+			Role:    agentcore.RoleUser,
+			Content: []agentcore.ContentBlock{agentcore.TextBlock(prompt)},
+		},
+	}, nil)
 	durA := time.Since(startA).Milliseconds()
 	outA := ""
 	if errA == nil && respA != nil {
-		outA = respA.Content
+		for _, b := range respA.Message.Content {
+			if b.Type == agentcore.ContentText {
+				outA += b.Text
+			}
+		}
 	} else {
 		outA = fmt.Sprintf("Lỗi tạo mẫu Model A (%v)", errA)
 	}
 
 	startB := time.Now()
-	respB, errB := runnerB.Generate(ctx, []agentcore.Message{{Role: "user", Content: prompt}})
+	respB, errB := runnerB.Generate(ctx, []agentcore.Message{
+		{
+			Role:    agentcore.RoleUser,
+			Content: []agentcore.ContentBlock{agentcore.TextBlock(prompt)},
+		},
+	}, nil)
 	durB := time.Since(startB).Milliseconds()
 	outB := ""
 	if errB == nil && respB != nil {
-		outB = respB.Content
+		for _, b := range respB.Message.Content {
+			if b.Type == agentcore.ContentText {
+				outB += b.Text
+			}
+		}
 	} else {
 		outB = fmt.Sprintf("Lỗi tạo mẫu Model B (%v)", errB)
 	}

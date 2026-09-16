@@ -4,6 +4,7 @@
 package stylepreset
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -12,7 +13,6 @@ import (
 	"github.com/voocel/ainovel-cli/assets"
 	"github.com/voocel/ainovel-cli/internal/abselect"
 	"github.com/voocel/ainovel-cli/internal/authorship"
-	"github.com/voocel/ainovel-cli/internal/bootstrap"
 )
 
 // StyleInfo chứa thông tin hiển thị của một bộ phong cách.
@@ -192,9 +192,9 @@ func (m *Manager) TuneStyleWithAB(styleName string) error {
 }
 
 func jsonUnmarshal(data []byte, v any) error {
-	return bootstrap.JSONUnmarshal(data, v)
+	return json.Unmarshal(data, v)
 }
 
 func jsonMarshalIndent(v any) ([]byte, error) {
-	return bootstrap.JSONMarshalIndent(v)
+	return json.MarshalIndent(v, "", "  ")
 }

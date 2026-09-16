@@ -11,7 +11,6 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
-	"time"
 
 	"github.com/voocel/ainovel-cli/internal/domain"
 	"github.com/voocel/ainovel-cli/internal/store"
@@ -158,15 +157,14 @@ func (a *Analyzer) extractEntities(text string, res *AnalysisResult) {
 func SetupContinuationProject(targetDir string, res *AnalysisResult) error {
 	st := store.NewStore(targetDir)
 
-	if err := st.EnsureDirs(); err != nil {
+	if err := st.Init(); err != nil {
 		return err
 	}
 
 	// 1. Khởi tạo Book meta
-	_ = st.Book.Save(domain.BookMeta{
-		Title:       res.BookTitle,
-		CreatedAt:   time.Now(),
-		CompletedAt: time.Time{},
+	_ = st.Book.Save(domain.BookMetadata{
+		Title:    res.BookTitle,
+		Synopsis: res.WorldLore,
 	})
 
 	// 2. Khởi tạo Progress (Đã hoàn thành đến chương LastChapterNum)
@@ -175,23 +173,20 @@ func SetupContinuationProject(targetDir string, res *AnalysisResult) error {
 		completed = append(completed, i)
 	}
 
-	_ = st.Progress.Save(domain.Progress{
+	_ = st.Progress.Save(&domain.Progress{
 		Phase:             domain.PhaseWriting,
 		CompletedChapters: completed,
-		TotalWordCount:    res.TotalWords,
-		UpdatedAt:         time.Now(),
+		TotalChapters:     res.LastChapterNum,
 	})
 
 	// 3. Khởi tạo Thế giới & Nhân vật
 	var charList []domain.Character
-	for i, name := range res.Characters {
+	for _, name := range res.Characters {
 		charList = append(charList, domain.Character{
-			Name:        name,
-			Role:        func() string { if i == 0 { return "Nhân vật chính" }; return "Nhân vật phụ" }(),
-			Description: fmt.Sprintf("Nhân vật trích xuất từ tác phẩm gốc %s", res.BookTitle),
+			Name: name,
 		})
 	}
-	_ = st.World.SaveCharacters(charList)
+	_ = st.Characters.Save(charList)
 
 	// 4. Khởi tạo style/voice.md
 	styleDir := filepath.Join(targetDir, "style")

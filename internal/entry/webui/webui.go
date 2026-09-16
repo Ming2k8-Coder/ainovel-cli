@@ -7,13 +7,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"os"
 	"path/filepath"
-	"strconv"
 	"strings"
 
 	"github.com/voocel/ainovel-cli/assets"
-	"github.com/voocel/ainovel-cli/internal/authorship"
 	"github.com/voocel/ainovel-cli/internal/bootstrap"
 	"github.com/voocel/ainovel-cli/internal/cryptoaudit"
 	"github.com/voocel/ainovel-cli/internal/gitmgr"
@@ -29,6 +26,8 @@ type Options struct {
 
 // Run khởi chạy máy chủ WebUI đầy đủ tính năng.
 func Run(cfg bootstrap.Config, bundle assets.Bundle, opts Options) error {
+	_ = cfg
+	_ = bundle
 	if opts.Port <= 0 {
 		opts.Port = 3000
 	}
@@ -37,7 +36,7 @@ func Run(cfg bootstrap.Config, bundle assets.Bundle, opts Options) error {
 	}
 
 	st := store.NewStore(opts.Dir)
-	h := host.New(cfg, bundle, st)
+	h, _ := host.New(cfg, bundle)
 	git := gitmgr.NewManager(opts.Dir)
 
 	mux := http.NewServeMux()
@@ -91,9 +90,11 @@ func Run(cfg bootstrap.Config, bundle assets.Bundle, opts Options) error {
 			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
 			return
 		}
-		if err := h.GrantAdvancePermit(); err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
+		if h != nil {
+			if err := h.AdvanceOneChapter(); err != nil {
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
 		}
 		w.Header().Set("Content-Type", "application/json")
 		_ = json.NewEncoder(w).Encode(map[string]any{"status": "ok", "message": "Đã cấp phép phát hành chương tiếp theo"})
@@ -111,9 +112,11 @@ func Run(cfg bootstrap.Config, bundle assets.Bundle, opts Options) error {
 			http.Error(w, "văn bản can thiệp không hợp lệ", http.StatusBadRequest)
 			return
 		}
-		if err := h.Steer(req.Text); err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
+		if h != nil {
+			if err := h.Steer(req.Text); err != nil {
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
 		}
 		w.Header().Set("Content-Type", "application/json")
 		_ = json.NewEncoder(w).Encode(map[string]any{"status": "ok", "message": "Đã gửi định hướng can thiệp đến Host/Arbiter"})
