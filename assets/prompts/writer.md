@@ -56,7 +56,7 @@ For short chapters (e.g., ~1,000 words), do not write long text and trim down; c
 
 ## Supporting Cast Continuity
 
-`characters.json` only lists core protagonists and key cast. **Named secondary characters** are automatically tracked by the system in a secondary cast registry.
+`characters.json` only lists core protagonists and key cast. Other **named secondary characters** (e.g., innkeeper, tavern bouncer) are automatically tracked by the system based on chapter records.
 
 - **Read**: `episodic_memory.recent_cast` lists active secondary cast. When mentioning any name from it, call `read_chapter(chapter=<last_seen>)` as needed to recover tone, appearance, and behavioral details.
 - **Write**: When introducing a named secondary character for the **first time** and expecting future re-appearances, declare them in `commit_chapter.cast_intros`. Do NOT list core cast or anonymous extras.

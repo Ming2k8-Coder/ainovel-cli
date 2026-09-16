@@ -56,7 +56,7 @@ type AggregateRefresh struct {
 type State struct {
 	Progress *domain.Progress
 
-	// 上一个已完成章节（Progress.CompletedChapters 末尾）；为 0 表示尚未开始写作。
+	// 已完成章节中的最大章节号；为 0 表示尚未开始写作。
 	LastCompleted int
 
 	// 上一章的弧边界信息；IsArcEnd=false 时其他字段无意义。
@@ -234,7 +234,7 @@ func Route(s State) *Instruction {
 		case b.NeedsExpansion && b.NextArc > 0:
 			return &Instruction{
 				Agent:  "architect_long",
-				Task:   fmt.Sprintf("展开第 %d 卷第 %d 弧（save_foundation type=expand_arc）", b.NextVolume, b.NextArc),
+				Task:   fmt.Sprintf("展开第 %d 卷第 %d 弧（expand_next_arc）", b.NextVolume, b.NextArc),
 				Reason: "下一弧骨架待展开",
 			}
 		case b.NeedsNewVolume:

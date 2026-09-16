@@ -71,6 +71,12 @@ func (r *contextReads) require(scope string, err error) {
 	r.err = fmt.Errorf("%s 读取失败: %w", scope, err)
 }
 
+func (r *contextReads) fail(err error) {
+	if r.err == nil {
+		r.err = err
+	}
+}
+
 // NewContextTool 创建上下文工具。styleStats 必须与 commit_chapter 共享，
 // 否则重写章节后上下文会继续读取旧统计。
 // user_rules 由 buildUserRules 直接读本书快照（meta/user_rules.json）注入，不再依赖加载选项。
@@ -89,7 +95,8 @@ func NewContextTool(
 func (t *ContextTool) Name() string { return "novel_context" }
 func (t *ContextTool) Description() string {
 	return "获取小说当前状态和创作上下文。" +
-		"不传 chapter：返回 progress_status（phase/flow/next_chapter/pending_rewrites 等进度字段）+ 基础设定，用于判断下一步该做什么。" +
+		"不传 chapter：返回 progress_status（phase/flow/next_chapter/pending_rewrites 等进度字段）+ 精简规划概览，用于判断下一步该做什么；" +
+		"长篇 Architect 可传 volume + arc 聚焦读取指定弧：已展开弧包含章节详情，骨架弧包含 title/goal/estimated_chapters。" +
 		"传 chapter=N：额外返回该章的前情摘要、伏笔、角色状态、风格规则等写作上下文"
 }
 func (t *ContextTool) Label() string { return "加载上下文" }
@@ -101,15 +108,28 @@ func (t *ContextTool) ConcurrencySafe(_ json.RawMessage) bool { return true }
 func (t *ContextTool) Schema() map[string]any {
 	return schema.Object(
 		schema.Property("chapter", schema.Int("章节号。不传则返回进度状态和基础设定（Architect 用）；传入则额外返回该章的写作上下文（Writer/Editor 用）")),
+		schema.Property("volume", schema.Int("长篇 Architect 可选：聚焦读取的卷序号；已展开弧返回章节详情，骨架弧返回规划目标；必须与 arc 同时传入，不能与 chapter 同时使用")),
+		schema.Property("arc", schema.Int("长篇 Architect 可选：聚焦读取的卷内弧序号；已展开弧返回章节详情，骨架弧返回规划目标；必须与 volume 同时传入，不能与 chapter 同时使用")),
 	)
 }
 
 func (t *ContextTool) Execute(_ context.Context, args json.RawMessage) (json.RawMessage, error) {
 	var a struct {
 		Chapter int `json:"chapter"`
+		Volume  int `json:"volume"`
+		Arc     int `json:"arc"`
 	}
 	if err := json.Unmarshal(args, &a); err != nil {
 		return nil, fmt.Errorf("invalid args: %w", err)
+	}
+	if a.Chapter < 0 || a.Volume < 0 || a.Arc < 0 {
+		return nil, fmt.Errorf("chapter, volume and arc must be >= 0")
+	}
+	if a.Chapter > 0 && (a.Volume > 0 || a.Arc > 0) {
+		return nil, fmt.Errorf("chapter cannot be combined with volume or arc")
+	}
+	if (a.Volume > 0) != (a.Arc > 0) {
+		return nil, fmt.Errorf("volume and arc must be provided together")
 	}
 
 	result := make(map[string]any)
@@ -122,11 +142,6 @@ func (t *ContextTool) Execute(_ context.Context, args json.RawMessage) (json.Raw
 		state := t.prepareChapterContext(a.Chapter, &seed, reads)
 		seed.apply(result)
 		t.buildChapterContext(result, state, reads)
-		// 该章的机械违规事实(commit 时按 user_rules 检查并落盘):
-		// editor 评审据此映射进七维(editor.md §机械检查映射);writer 返工时自查。
-		if violations := t.store.World.LoadRuleViolations(a.Chapter); len(violations) > 0 {
-			result["rule_violations"] = violations
-		}
 		// episodic 是已写入正文的备忘，不是待写素材。
 		if epi, ok := result["episodic_memory"].(map[string]any); ok && len(epi) > 0 {
 			epi["_usage"] = "本容器为已写入正文的事实备忘（供一致性与衔接对照）；在新章正文中原样复述这些内容属于重复缺陷"
@@ -134,7 +149,7 @@ func (t *ContextTool) Execute(_ context.Context, args json.RawMessage) (json.Raw
 	} else {
 		// Architect 路径：只返回状态 + 结构化数据，不加载全量原文
 		t.buildProgressStatus(result, reads)
-		t.buildArchitectContext(result, reads)
+		t.buildArchitectContext(result, reads, a.Volume, a.Arc)
 	}
 
 	// 注入 working_memory.user_rules（canonical 路径）。架构师路径原本没有 working_memory，
@@ -146,7 +161,10 @@ func (t *ContextTool) Execute(_ context.Context, args json.RawMessage) (json.Raw
 		t.buildSimulationProfile(result, "planning_memory", reads)
 	}
 
-	t.buildUserRules(result, reads)
+	userRules := t.buildUserRules(result, reads)
+	if a.Chapter > 0 {
+		t.buildRuleViolations(result, a.Chapter, userRules, reads)
+	}
 
 	if reads.err != nil {
 		return nil, reads.err
@@ -155,15 +173,14 @@ func (t *ContextTool) Execute(_ context.Context, args json.RawMessage) (json.Raw
 		result["_warnings"] = reads.warnings
 	}
 
-	// 优先级预算：总大小超过阈值时自动裁剪低优先级数据
-	if a.Chapter > 0 {
-		trimByBudget(result, 100*1024) // Writer: 100KB
-	} else {
-		trimByBudget(result, 60*1024) // Architect: 60KB
-	}
-
+	// 工具层只做与任务相关的语义选择；上下文体积由各 Worker 按实际模型窗口管理。
 	result["_loading_summary"] = buildLoadingSummary(result, a.Chapter)
-	return json.Marshal(result)
+
+	data, err := json.Marshal(result)
+	if err != nil {
+		return nil, fmt.Errorf("marshal context payload: %w", err)
+	}
+	return data, nil
 }
 
 // buildLoadingSummary 从已组装的 result 中统计各项数据量，生成一行可读摘要。
@@ -273,10 +290,6 @@ func buildLoadingSummary(result map[string]any, chapter int) string {
 	if warnings, ok := result["_warnings"].([]string); ok && len(warnings) > 0 {
 		items = append(items, fmt.Sprintf("告警:%d", len(warnings)))
 	}
-	if trimmed, ok := result["_trimmed"].([]string); ok && len(trimmed) > 0 {
-		items = append(items, fmt.Sprintf("裁剪:%s", strings.Join(trimmed, ",")))
-	}
-
 	if len(items) > 0 {
 		parts = append(parts, strings.Join(items, " "))
 	}
@@ -309,6 +322,8 @@ func sliceLen(v any) int {
 	case []domain.RelatedChapter:
 		return len(s)
 	case []domain.RecallItem:
+		return len(s)
+	case []planningVolumeOutline:
 		return len(s)
 	default:
 		return 0
@@ -498,72 +513,6 @@ func (t *ContextTool) foundationStatus() (map[string]any, error) {
 		status["last_audit"] = audit
 	}
 	return status, nil
-}
-
-// trimByBudget 按优先级裁剪 result，使 JSON 总大小不超过 budget 字节。
-// 优先级（从低到高）：references < voice_samples < style_anchors < previous_tail < timeline
-//
-//	< recent_state_changes < foreshadow_ledger < relationship_state < 其余（不裁剪）
-//
-// style_stats 是体积有界的全书级核心信号，不参与裁剪。
-//
-// 裁剪的 key 会记录到 result["_trimmed"] 供日志排查。
-func trimByBudget(result map[string]any, budget int) {
-	// 先测量当前大小
-	data, err := json.Marshal(result)
-	if err != nil || len(data) <= budget {
-		return
-	}
-
-	// 按优先级从低到高列出可裁剪的 key
-	trimOrder := []string{
-		"references",
-		"voice_samples",
-		"style_anchors",
-		"style_rules",
-		"previous_tail",
-		"timeline",
-		"recent_state_changes",
-		"foreshadow_ledger",
-		"relationship_state",
-	}
-
-	var trimmed []string
-	for _, key := range trimOrder {
-		if !deleteContextKey(result, key) {
-			continue
-		}
-		trimmed = append(trimmed, key)
-		data, err = json.Marshal(result)
-		if err != nil || len(data) <= budget {
-			break
-		}
-	}
-	if len(trimmed) > 0 {
-		result["_trimmed"] = trimmed
-	}
-}
-
-func deleteContextKey(result map[string]any, key string) bool {
-	deleted := false
-	for _, containerKey := range []string{
-		"working_memory",
-		"episodic_memory",
-		"planning_memory",
-		"foundation_memory",
-		"reference_pack",
-		"selected_memory",
-	} {
-		section, ok := result[containerKey].(map[string]any)
-		if !ok {
-			continue
-		}
-		if _, ok := section[key]; ok {
-			delete(section, key)
-			deleted = true
-		}
-	}
-	return deleted
 }
 
 // buildRelatedChapters 根据结构化数据反查与当前章相关的历史章节。

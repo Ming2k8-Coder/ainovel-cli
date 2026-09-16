@@ -81,9 +81,26 @@ Evaluate literary quality of raw prose. Every issue **MUST quote raw draft text*
 
 ### 3b. User Rules (`user_rules`)
 
-Map user rules from `working_memory.user_rules`:
-- `structured` violations (`forbidden_chars`, `forbidden_phrases`, `fatigue_words`) are auto-checked on commit; map them to corresponding dimensions (`aesthetic` / `consistency`).
-- `preferences` natural language rules map to `character`, `consistency`, `aesthetic`, or `pacing`. User preferences take priority upon conflict.
+`working_memory.user_rules` returned by `novel_context` contains user preferences for this book:
+- **`structured`**: Mechanically checkable fields (`forbidden_chars`, `forbidden_phrases`, `fatigue_words`, `genre`).
+- **`preferences`**: Merged Markdown preferences prose (with source headings).
+- **`sources`** / **`conflicts`**: Provenance chain and anomalies list (explain any conflicts in review).
+
+`novel_context(chapter=N)` dynamically computes mechanical check results against admitted text and current user rules, provided via top-level `rule_violations` array (omitted when no violations). Map mechanical violations into existing basic dimensions; do not invent new dimensions for each rule:
+
+| violation.rule | Maps to Dimension | Handling Advice |
+|---|---|---|
+| `forbidden_chars` | `aesthetic` | `severity=error` → issue at least one item, verdict upgraded to polish |
+| `forbidden_phrases` | `aesthetic` | same as above |
+| `fatigue_words` | `aesthetic` | `severity=warning` → issue item, quote raw text in evidence |
+
+`preferences` natural language rules map to:
+- Character preferences ("protagonist not tsundere", "supporting role tone") → **`character`**
+- Setting preferences ("realm order", "spirit root rules") → **`consistency`**
+- Style preferences ("avoid report tone", "dialogue distinction") → **`aesthetic`**
+- Pacing / word-count preferences → **`pacing`**
+
+Verdict rules remain unchanged: accept / polish / rewrite are determined by severity standards below. Mechanical violations are facts; final decision to trigger reworks rests on overall literary evaluation.
 
 ### 4. Save Conclusions
 

@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"slices"
 	"strings"
 	"sync"
 	"time"
@@ -199,6 +200,20 @@ func (e *engine) run(ctx context.Context) {
 				e.pauseWithNotify(notify.KindWorkerFailure, "路由事实读取失败，已暂停: "+err.Error())
 				return
 			}
+			// 卷摘要可能已落盘而进程尚未来得及 MarkComplete。聚合工件全部齐备时
+			// 先按事实补做完结判定，再交给 Router，避免收官卷被误派去续卷。
+			if state.AggregateRefresh == nil && state.Progress != nil && state.Progress.Layered &&
+				state.Progress.Phase == domain.PhaseWriting && state.ArcBoundary != nil &&
+				state.ArcBoundary.IsVolumeEnd && state.HasArcReview && state.HasArcSummary && state.HasVolumeSummary {
+				complete, reconcileErr := tools.ReconcileLayeredCompletion(e.store)
+				if reconcileErr != nil {
+					e.pauseWithNotify(notify.KindWorkerFailure, "完结状态恢复失败，已暂停: "+reconcileErr.Error())
+					return
+				}
+				if complete {
+					continue
+				}
+			}
 			inst = flow.Route(state)
 		}
 		if inst == nil {
@@ -386,7 +401,7 @@ func (e *engine) precheck(inst *flow.Instruction) (*flow.Instruction, error) {
 				// 是说给 LLM 的;Engine 直接做正确的事)。
 				return &flow.Instruction{
 					Agent:  "architect_long",
-					Task:   fmt.Sprintf("下一弧为骨架(%s)。调用 save_foundation(type=expand_arc) 展开下一弧;若当前卷已写完,改用 type=append_volume 追加并展开下一卷。", err),
+					Task:   fmt.Sprintf("下一弧为骨架(%s)。调用 expand_next_arc 展开下一弧；若当前卷已写完，改用 save_foundation(type=append_volume) 追加并展开下一卷。", err),
 					Reason: "写作目标章未展开,先展开再续写",
 				}, nil
 			}
@@ -432,7 +447,7 @@ func (e *engine) trackDeadlock(ctx context.Context, inst **flow.Instruction) (st
 		return false
 	}
 	if e.repeats >= deadlockAbortAt {
-		e.pauseWithNotify(notify.KindDeadlock, fmt.Sprintf("僵局熔断: 指令连续 %d 次无进展(%s),已暂停等待人工介入", e.repeats, in.Agent))
+		e.pauseStuck(notify.KindDeadlock, in, fmt.Sprintf("僵局熔断: 指令连续 %d 次无进展(%s),已暂停等待人工介入", e.repeats, in.Agent))
 		return true
 	}
 	// Arbiter 僵局咨询(repeats ∈ [consultAt, abortAt))。裁定 retry 不清零计数。
@@ -452,7 +467,7 @@ func (e *engine) trackDeadlock(ctx context.Context, inst **flow.Instruction) (st
 		*inst = &flow.Instruction{Agent: decision.Dispatch.Agent, Task: decision.Dispatch.Task, Reason: decision.Reason}
 		return false
 	default: // abort
-		e.pauseWithNotify(notify.KindDeadlock, "僵局裁定: "+decision.Reason)
+		e.pauseStuck(notify.KindDeadlock, in, "僵局裁定: "+decision.Reason)
 		return true
 	}
 }
@@ -519,9 +534,37 @@ func (e *engine) handleWorkerError(ctx context.Context, inst *flow.Instruction, 
 		e.mu.Unlock()
 		return false
 	default: // abort
-		e.pauseWithNotify(notify.KindWorkerFailure, "失败裁定: "+decision.Reason+contentFilterAdvice(werr))
+		e.pauseStuck(notify.KindWorkerFailure, inst, "失败裁定: "+decision.Reason+contentFilterAdvice(werr))
 		return true
 	}
+}
+
+// pauseStuck 在引擎放弃一条指令时暂停:返工章先出队再停。仅用于引擎已判定该指令
+// 走不通的出路(僵局熔断、僵局/失败裁定 abort),裁定不可用等基础设施故障仍走
+// pauseWithNotify——那是外部问题,不该赔上一章返工。
+func (e *engine) pauseStuck(kind string, inst *flow.Instruction, body string) {
+	if e.dropStuckRewrite(inst) {
+		body += fmt.Sprintf("；第 %d 章已移出返工队列(保留上一版终稿),继续创作将从后续章节推进", inst.Chapter)
+	}
+	e.pauseWithNotify(kind, body)
+}
+
+// dropStuckRewrite 把卡死的返工章移出队列。PendingRewrites 是持久化事实,引擎放弃
+// 这条指令时不出队的话,重启会立刻重放同一条死指令,把整本书永久锁死(issue #110)。
+// 返回 true 表示确实出队了。
+func (e *engine) dropStuckRewrite(inst *flow.Instruction) bool {
+	if inst == nil || inst.Agent != "writer" || inst.Chapter <= 0 {
+		return false
+	}
+	progress, err := e.store.Progress.Load()
+	if err != nil || progress == nil || !slices.Contains(progress.PendingRewrites, inst.Chapter) {
+		return false
+	}
+	if err := e.store.Progress.CompleteRewrite(inst.Chapter); err != nil {
+		slog.Warn("卡死返工章出队失败", "module", "engine", "chapter", inst.Chapter, "err", err)
+		return false
+	}
+	return true
 }
 
 // discardNonSemanticDeadlockAttempt 撤销 trackDeadlock 为本次派发预记的

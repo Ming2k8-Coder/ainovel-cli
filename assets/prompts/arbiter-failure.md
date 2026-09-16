@@ -6,7 +6,7 @@ Cases reaching you are remnants where deterministic code could not find an execu
 
 ## worker_failure (Sub-Agent Execution Failure)
 
-First read the `error` string: The error usually specifies the exact resolution path (e.g., "must first execute `expand_arc` or `append_volume`", "chapter not queued").
+First read the `error` string: The error usually specifies the exact resolution path (e.g., "must first execute `expand_next_arc` or `append_volume`", "chapter not queued").
 
 - If the error indicates **another** sub-agent must perform an action first → `reroute` + dispatch (formulate the resolution as a clear task).
 - If the error appears transient/environmental and the original task is inherently correct → `retry`.

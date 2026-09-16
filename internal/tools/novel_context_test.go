@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"slices"
 	"strings"
 	"testing"
 
@@ -62,6 +61,11 @@ func TestContextToolInjectsStyleStats(t *testing.T) {
 	for ch := 1; ch <= 6; ch++ {
 		if err := st.Drafts.SaveFinalChapter(ch, body); err != nil {
 			t.Fatalf("SaveFinalChapter: %v", err)
+		}
+		if _, err := st.ChapterRecords.Accept(ch, domain.ChapterOriginGenerated, body, domain.ChapterFacts{
+			Title: fmt.Sprintf("第%d章", ch), Summary: "摘要", KeyEvents: []string{"事件"},
+		}, domain.StyleDelta{}); err != nil {
+			t.Fatalf("Accept: %v", err)
 		}
 		progress.CompletedChapters = append(progress.CompletedChapters, ch)
 	}
@@ -277,7 +281,6 @@ func TestContextToolChapterModeIncludesWorkingAndReferenceFields(t *testing.T) {
 		"premise",
 		"premise_sections",
 		"premise_structure",
-		"outline",
 		"world_rules",
 		"memory_policy",
 		"working_memory",
@@ -287,6 +290,9 @@ func TestContextToolChapterModeIncludesWorkingAndReferenceFields(t *testing.T) {
 		if _, ok := payload[key]; !ok {
 			t.Fatalf("expected key %q in chapter context", key)
 		}
+	}
+	if _, ok := payload["outline"]; ok {
+		t.Fatal("chapter context must not include the whole outline")
 	}
 	working := payload["working_memory"].(map[string]any)
 	for _, key := range []string{"current_chapter_outline", "recent_summaries", "chapter_plan", "chapter_contract", "previous_tail"} {
@@ -494,52 +500,224 @@ func TestContextToolArchitectModeIncludesFlatOutline(t *testing.T) {
 	}
 }
 
-func TestTrimByBudgetRemovesCanonicalMemoryKeys(t *testing.T) {
-	result := map[string]any{
-		"reference_pack": map[string]any{
-			"references": map[string]string{
-				"a": strings.Repeat("x", 200),
-				"b": strings.Repeat("y", 200),
-			},
-			"style_rules": []string{"克制"},
+func TestProjectLayeredOutlineKeepsOnlyFocusedArcDetails(t *testing.T) {
+	volumes := []domain.VolumeOutline{{
+		Index: 1,
+		Arcs: []domain.ArcOutline{
+			{Index: 1, Chapters: []domain.OutlineEntry{{Title: "一"}, {Title: "二"}}},
+			{Index: 2, Chapters: []domain.OutlineEntry{{Title: "三"}, {Title: "四"}}},
 		},
-	}
+	}}
 
-	trimByBudget(result, 80)
-
-	pack, ok := result["reference_pack"].(map[string]any)
-	if !ok {
-		t.Fatal("expected reference_pack to remain available")
+	projected, detailIncluded := projectLayeredOutlineForPlanning(volumes, 2, 1, 2)
+	if !detailIncluded {
+		t.Fatal("expected focused arc details")
 	}
-	if _, ok := pack["references"]; ok {
-		t.Fatal("expected references to be trimmed from reference_pack")
+	if got := projected[0].Arcs[0]; got.Status != "completed" || len(got.Chapters) != 0 || !got.ChaptersOmitted || got.StartChapter != 1 || got.EndChapter != 2 {
+		t.Fatalf("completed arc projection = %+v", got)
+	}
+	if got := projected[0].Arcs[1]; got.Status != "expanded" || len(got.Chapters) != 2 || got.StartChapter != 3 || got.EndChapter != 4 {
+		t.Fatalf("future arc projection = %+v", got)
 	}
 }
 
-func TestTrimByBudgetKeepsStyleStats(t *testing.T) {
-	styleStats := map[string]any{
-		"chapters": 200,
-		"patterns": []map[string]any{
-			{"name": "矫正句", "total": 80, "per_chapter": 0.4},
-		},
+func TestContextToolLongLayeredPlanningProjectsFocusedArc(t *testing.T) {
+	s := store.NewStore(t.TempDir())
+	if err := s.Init(); err != nil {
+		t.Fatal(err)
 	}
-	result := map[string]any{
-		"reference_pack": map[string]any{
-			"references": strings.Repeat("x", 500),
-		},
-		"episodic_memory": map[string]any{
-			"style_stats": styleStats,
-		},
+	volumes := make([]domain.VolumeOutline, 10)
+	chapter := 0
+	for vi := range volumes {
+		volumes[vi] = domain.VolumeOutline{Index: vi + 1, Title: fmt.Sprintf("卷%d", vi+1), Theme: strings.Repeat("主题", 10)}
+		for ai := 0; ai < 10; ai++ {
+			arc := domain.ArcOutline{Index: ai + 1, Title: fmt.Sprintf("弧%d", ai+1), Goal: strings.Repeat("目标", 20)}
+			for ci := 0; ci < 5; ci++ {
+				chapter++
+				arc.Chapters = append(arc.Chapters, domain.OutlineEntry{
+					Title: fmt.Sprintf("第%d章", chapter), CoreEvent: strings.Repeat("关键事件", 30),
+					Hook: strings.Repeat("悬念", 20), Scenes: []string{strings.Repeat("场景", 20)},
+				})
+			}
+			volumes[vi].Arcs = append(volumes[vi].Arcs, arc)
+		}
+	}
+	if err := s.Outline.SaveLayeredOutline(volumes); err != nil {
+		t.Fatal(err)
+	}
+	completed := make([]int, 297)
+	for i := range completed {
+		completed[i] = i + 1
+	}
+	if err := s.Progress.Save(&domain.Progress{
+		Phase: domain.PhaseWriting, Layered: true, CompletedChapters: completed,
+		CurrentVolume: 6, CurrentArc: 10,
+	}); err != nil {
+		t.Fatal(err)
 	}
 
-	trimByBudget(result, 100)
-
-	episodic := result["episodic_memory"].(map[string]any)
-	if _, ok := episodic["style_stats"]; !ok {
-		t.Fatal("style_stats must remain in episodic_memory")
+	raw, err := newTestContextTool(s, References{}, "default").Execute(context.Background(), json.RawMessage(`{}`))
+	if err != nil {
+		t.Fatal(err)
 	}
-	if trimmed, ok := result["_trimmed"].([]string); ok && slices.Contains(trimmed, "style_stats") {
-		t.Fatal("style_stats must not be reported as trimmed")
+	var payload struct {
+		PlanningMemory struct {
+			LayeredOutline []planningVolumeOutline `json:"layered_outline"`
+		} `json:"planning_memory"`
+	}
+	if err := json.Unmarshal(raw, &payload); err != nil {
+		t.Fatal(err)
+	}
+	current := payload.PlanningMemory.LayeredOutline[5].Arcs[9]
+	if len(current.Chapters) != 5 {
+		t.Fatalf("current arc chapters = %d, want 5", len(current.Chapters))
+	}
+	future := payload.PlanningMemory.LayeredOutline[6].Arcs[0]
+	if len(future.Chapters) != 0 || !future.ChaptersOmitted {
+		t.Fatalf("future arc projection = %+v", future)
+	}
+
+	focusedRaw, err := newTestContextTool(s, References{}, "default").Execute(
+		context.Background(),
+		json.RawMessage(`{"volume":7,"arc":1}`),
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var focusedPayload struct {
+		PlanningMemory struct {
+			LayeredOutline []planningVolumeOutline `json:"layered_outline"`
+		} `json:"planning_memory"`
+	}
+	if err := json.Unmarshal(focusedRaw, &focusedPayload); err != nil {
+		t.Fatal(err)
+	}
+	focused := focusedPayload.PlanningMemory.LayeredOutline[6].Arcs[0]
+	if len(focused.Chapters) != 5 || focused.ChaptersOmitted {
+		t.Fatalf("focused arc projection = %+v", focused)
+	}
+}
+
+func TestContextToolReadsFocusedPlanningScope(t *testing.T) {
+	s := store.NewStore(t.TempDir())
+	if err := s.Init(); err != nil {
+		t.Fatal(err)
+	}
+	tool := newTestContextTool(s, References{}, "default")
+	if _, err := tool.Execute(context.Background(), json.RawMessage(`{"volume":1}`)); err == nil || !strings.Contains(err.Error(), "provided together") {
+		t.Fatalf("expected paired planning scope error, got %v", err)
+	}
+	if err := s.Outline.SaveLayeredOutline([]domain.VolumeOutline{{Index: 1, Arcs: []domain.ArcOutline{
+		{Index: 1, Chapters: []domain.OutlineEntry{{Title: "序幕"}}},
+		{Index: 2, Title: "暗潮", Goal: "找出幕后势力", EstimatedChapters: 6},
+	}}}); err != nil {
+		t.Fatal(err)
+	}
+	if err := s.Progress.Save(&domain.Progress{CompletedChapters: []int{1}, CurrentVolume: 1, CurrentArc: 1}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := tool.Execute(context.Background(), json.RawMessage(`{"volume":2,"arc":1}`)); err == nil || !strings.Contains(err.Error(), "not found") {
+		t.Fatalf("expected missing planning scope error, got %v", err)
+	}
+	skeletonRaw, err := tool.Execute(context.Background(), json.RawMessage(`{"volume":1,"arc":2}`))
+	if err != nil {
+		t.Fatalf("focused skeleton arc: %v", err)
+	}
+	var skeletonPayload struct {
+		PlanningMemory struct {
+			LayeredOutline []planningVolumeOutline `json:"layered_outline"`
+		} `json:"planning_memory"`
+	}
+	if err := json.Unmarshal(skeletonRaw, &skeletonPayload); err != nil {
+		t.Fatal(err)
+	}
+	prior := skeletonPayload.PlanningMemory.LayeredOutline[0].Arcs[0]
+	if len(prior.Chapters) != 0 || !prior.ChaptersOmitted {
+		t.Fatalf("unfocused prior arc = %+v", prior)
+	}
+	skeleton := skeletonPayload.PlanningMemory.LayeredOutline[0].Arcs[1]
+	if skeleton.Status != "skeleton" || skeleton.Title != "暗潮" || skeleton.Goal != "找出幕后势力" || skeleton.EstimatedChapters != 6 || len(skeleton.Chapters) != 0 {
+		t.Fatalf("focused skeleton = %+v", skeleton)
+	}
+
+	if err := s.Outline.SaveLayeredOutline([]domain.VolumeOutline{{
+		Index: 1,
+		Arcs: []domain.ArcOutline{{
+			Index:    1,
+			Chapters: []domain.OutlineEntry{{Title: "一"}, {Title: "二"}},
+		}},
+	}}); err != nil {
+		t.Fatal(err)
+	}
+	if err := s.Progress.Save(&domain.Progress{CompletedChapters: []int{1, 2}, CurrentVolume: 1, CurrentArc: 1}); err != nil {
+		t.Fatal(err)
+	}
+	raw, err := tool.Execute(context.Background(), json.RawMessage(`{"volume":1,"arc":1}`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	var payload struct {
+		PlanningMemory struct {
+			LayeredOutline []planningVolumeOutline `json:"layered_outline"`
+			OutlineDetail  map[string]int          `json:"outline_detail"`
+		} `json:"planning_memory"`
+	}
+	if err := json.Unmarshal(raw, &payload); err != nil {
+		t.Fatal(err)
+	}
+	focused := payload.PlanningMemory.LayeredOutline[0].Arcs[0]
+	if focused.Status != "completed" || len(focused.Chapters) != 2 || focused.ChaptersOmitted {
+		t.Fatalf("completed focused arc projection = %+v", focused)
+	}
+	if payload.PlanningMemory.OutlineDetail["volume"] != 1 || payload.PlanningMemory.OutlineDetail["arc"] != 1 {
+		t.Fatalf("outline detail = %+v", payload.PlanningMemory.OutlineDetail)
+	}
+
+	if err := s.Outline.ClearLayeredOutline(); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := tool.Execute(context.Background(), json.RawMessage(`{"volume":1,"arc":1}`)); err == nil || !strings.Contains(err.Error(), "requires a layered outline") {
+		t.Fatalf("expected flat outline planning scope error, got %v", err)
+	}
+}
+
+func TestContextToolWriterDoesNotIncludeWholeOutline(t *testing.T) {
+	s := store.NewStore(t.TempDir())
+	if err := s.Init(); err != nil {
+		t.Fatal(err)
+	}
+	outline := make([]domain.OutlineEntry, 200)
+	for i := range outline {
+		outline[i] = domain.OutlineEntry{
+			Chapter: i + 1, Title: fmt.Sprintf("第%d章", i+1),
+			CoreEvent: strings.Repeat("事件", 20), Hook: strings.Repeat("悬念", 10),
+		}
+	}
+	if err := s.Outline.SaveOutline(outline); err != nil {
+		t.Fatal(err)
+	}
+	if err := s.Progress.Save(&domain.Progress{Phase: domain.PhaseWriting, TotalChapters: 200}); err != nil {
+		t.Fatal(err)
+	}
+
+	raw, err := newTestContextTool(s, References{}, "default").Execute(context.Background(), json.RawMessage(`{"chapter":100}`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	var payload map[string]any
+	if err := json.Unmarshal(raw, &payload); err != nil {
+		t.Fatal(err)
+	}
+	if _, ok := payload["outline"]; ok {
+		t.Fatal("writer payload must not include the whole outline")
+	}
+	working := payload["working_memory"].(map[string]any)
+	if _, ok := working["current_chapter_outline"]; !ok {
+		t.Fatal("writer payload must retain the current chapter outline")
+	}
+	window, ok := working["outline_window"].([]any)
+	if !ok || len(window) != domain.ReviewInterval {
+		t.Fatalf("writer outline window = %T/%d, want %d entries", working["outline_window"], len(window), domain.ReviewInterval)
 	}
 }
 
@@ -873,6 +1051,11 @@ func TestContextToolInjectsRewriteBriefForPendingRewriteChapter(t *testing.T) {
 	if err := s.Progress.MarkChapterComplete(2, 3000, "", ""); err != nil {
 		t.Fatalf("MarkChapterComplete: %v", err)
 	}
+	if _, err := s.ChapterRecords.Accept(2, domain.ChapterOriginGenerated, "正文", domain.ChapterFacts{
+		Title: "第二章", Summary: "摘要", KeyEvents: []string{"事件"},
+	}, domain.StyleDelta{}); err != nil {
+		t.Fatalf("Accept: %v", err)
+	}
 	if err := s.Progress.SetPendingRewrites([]int{2}, "节奏拖沓，需要压缩前半段"); err != nil {
 		t.Fatalf("SetPendingRewrites: %v", err)
 	}
@@ -964,6 +1147,11 @@ func TestContextToolLoadsArcReviewAffectingEarlierChapter(t *testing.T) {
 		if err := s.Progress.MarkChapterComplete(chapter, 100, "", ""); err != nil {
 			t.Fatal(err)
 		}
+		if _, err := s.ChapterRecords.Accept(chapter, domain.ChapterOriginGenerated, "正文", domain.ChapterFacts{
+			Title: fmt.Sprintf("第%d章", chapter), Summary: "摘要", KeyEvents: []string{"事件"},
+		}, domain.StyleDelta{}); err != nil {
+			t.Fatal(err)
+		}
 	}
 	if err := s.Progress.SetPendingRewrites([]int{3}, "弧评审返工"); err != nil {
 		t.Fatal(err)
@@ -1030,10 +1218,7 @@ func TestContextToolDoesNotInjectUserDirectives(t *testing.T) {
 	}
 }
 
-// TestContextToolInjectsRuleViolations 违规事实管道契约(第五轮评审):
-// commit 落盘的机械违规必须经 novel_context(chapter=N) 真实注入——
-// editor.md §机械检查映射消费的就是这个字段,管道断了 prompt 就成空头支票。
-func TestContextToolInjectsRuleViolations(t *testing.T) {
+func TestContextToolComputesRuleViolationsFromAcceptedContent(t *testing.T) {
 	dir := t.TempDir()
 	st := store.NewStore(dir)
 	if err := st.Init(); err != nil {
@@ -1042,10 +1227,16 @@ func TestContextToolInjectsRuleViolations(t *testing.T) {
 	if err := st.Progress.Save(&domain.Progress{TotalChapters: 3, Phase: domain.PhaseWriting}); err != nil {
 		t.Fatalf("progress: %v", err)
 	}
-	if err := st.World.SaveRuleViolations(2, []rules.Violation{
-		{Rule: "fatigue_words", Target: "不禁", Actual: 9, Severity: rules.SeverityWarning},
-	}); err != nil {
-		t.Fatalf("save violations: %v", err)
+	snap := rules.BuildSnapshot([]rules.Candidate{{
+		Source: "test", Structured: rules.Structured{ForbiddenPhrases: []string{"不禁"}},
+	}})
+	if err := st.UserRules.Save(&snap); err != nil {
+		t.Fatalf("save rules: %v", err)
+	}
+	if _, err := st.ChapterRecords.Accept(2, domain.ChapterOriginGenerated, "他不禁回头。", domain.ChapterFacts{
+		Title: "第二章", Summary: "回头", KeyEvents: []string{"回头"},
+	}, domain.StyleDelta{}); err != nil {
+		t.Fatalf("accept chapter: %v", err)
 	}
 
 	tool := newTestContextTool(st, References{}, "default")
@@ -1063,15 +1254,18 @@ func TestContextToolInjectsRuleViolations(t *testing.T) {
 		t.Fatalf("rule_violations 必须注入章节上下文, got %v", result["rule_violations"])
 	}
 
-	// 无违规章节:字段缺省(editor.md 约定)
-	args3, _ := json.Marshal(map[string]any{"chapter": 3})
-	raw3, err := tool.Execute(context.Background(), args3)
+	// 规则改变后，同一接纳正文应立即按新规则重算，不保留旧结果。
+	updated := rules.BuildSnapshot([]rules.Candidate{{Source: "test"}})
+	if err := st.UserRules.Save(&updated); err != nil {
+		t.Fatalf("update rules: %v", err)
+	}
+	raw3, err := tool.Execute(context.Background(), args)
 	if err != nil {
-		t.Fatalf("Execute ch3: %v", err)
+		t.Fatalf("Execute updated rules: %v", err)
 	}
 	var result3 map[string]any
 	_ = json.Unmarshal(raw3, &result3)
 	if _, has := result3["rule_violations"]; has {
-		t.Fatal("无违规章节不应带 rule_violations 字段")
+		t.Fatal("规则更新后不应残留旧的 rule_violations")
 	}
 }

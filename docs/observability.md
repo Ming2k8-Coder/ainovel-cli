@@ -16,7 +16,17 @@ Hệ thống sử dụng gói nội bộ `internal/diag` làm hạ tầng quan s
 
 ---
 
-## 2. Kỷ Luật Quan Sát Bất Biến
+## 2. Các Thực Thể Trạng Thái Cần Giám Sát
+
+- **Tiến độ (`meta/progress.json`)**: Kiểm tra giai đoạn (`phase`), luồng (`flow`), danh sách chương đã hoàn thành (`completed_chapters`).
+- **La bàn định hướng (`meta/compass.json`)**: Độ lệch giữa `last_updated` và chương mới nhất (`CompassDrift`).
+- **Dữ liệu nhân vật phụ**: Chiếu trực tiếp theo thời gian thực từ `meta/chapter_records/*.json` (`facts.characters` và `facts.cast_intros`), không cần duy trì tập tin danh bộ riêng rẽ.
+- **Sổ cái phục bút (`meta/foreshadow.json`)**: Theo dõi các phục bút đang cấy dở (`planted`) và cảnh báo nếu bị bỏ quên quá lâu (`StaleForeshadow`).
+- **Dàn ý phân tầng (`meta/layered_outline.json`)**: Đảm bảo các Hồi tiếp theo luôn được mở rộng kịp thời trước khi viết đến ranh giới (`OutlineExhausted`).
+
+---
+
+## 3. Kỷ Luật Quan Sát Bất Biến
 
 > **Quy tắc cốt lõi: Tiểu hệ thống quan sát chỉ ghi nhận và cảnh báo — Tuyệt đối KHÔNG BAO GIỜ tự ý sửa đổi dữ liệu trong Store hoặc can thiệp vào logic điều phối của Engine.**
 

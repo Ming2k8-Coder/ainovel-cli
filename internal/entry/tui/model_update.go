@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log/slog"
 	"slices"
 	"strings"
 	"time"
@@ -427,9 +428,9 @@ func (m Model) handleRuntimeMsg(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 		m.applyEventProjection(ev)
 		m.refreshEventViewport()
 		cmd := listenEvents(m.runtime)
-		if !hadRunningEvent && m.hasRunningEvent() && !m.toolTicking {
-			m.toolTicking = true
-			cmd = tea.Batch(cmd, tickToolSpinner())
+		if !hadRunningEvent && m.hasRunningEvent() && !m.eventSpinnerActive {
+			m.eventSpinnerActive = true
+			cmd = tea.Batch(cmd, tickEventSpinner())
 		}
 		return m, cmd, true
 	case bootstrapMsg:
@@ -572,6 +573,26 @@ func (m Model) handleRuntimeMsg(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 		}
 		m.refreshEventViewport()
 		return m, nil, true
+	case updateCheckMsg:
+		if msg.err != nil {
+			message := "启动版本检查失败"
+			if msg.result != nil {
+				message = "启动版本检查完成，但缓存存在异常"
+			}
+			slog.Warn(message, "module", "version", "err", msg.err)
+		}
+		if msg.result == nil || !msg.result.UpdateAvailable {
+			return m, nil, true
+		}
+		notice := formatUpdateNotice(msg.result)
+		m.updateHint = notice
+		ev := host.Event{
+			Time: time.Now(), Category: "SYSTEM", Level: "info",
+			Summary: notice,
+		}
+		m.applyEvent(ev)
+		m.refreshEventViewport()
+		return m, nil, true
 	case revisionDoneMsg:
 		if msg.err != nil {
 			m.applyEvent(host.Event{Time: time.Now(), Category: "ERROR", Summary: "章节同步失败：" + msg.err.Error(), Level: "error"})
@@ -658,13 +679,13 @@ func (m Model) handleRuntimeMsg(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 			s.refresh(paddedModalContentWidth(boxW))
 		}
 		return m, tickSpinner(), true
-	case toolSpinnerTickMsg:
-		m.toolSpinnerIdx = (m.toolSpinnerIdx + 1) % len(toolSpinnerFrames)
+	case eventSpinnerTickMsg:
+		m.eventSpinnerIdx = (m.eventSpinnerIdx + 1) % len(eventSpinnerFrames)
 		if m.hasRunningEvent() {
 			m.refreshEventViewport()
-			return m, tickToolSpinner(), true
+			return m, tickEventSpinner(), true
 		}
-		m.toolTicking = false
+		m.eventSpinnerActive = false
 		return m, nil, true
 	case streamDeltaMsg:
 		if len(m.streamRounds) == 0 {
