@@ -96,23 +96,6 @@ Pass raw JSON arrays directly for `content` in `layered_outline`, `characters`, 
 Call `save_foundation(type="update_compass", content=<JSON>)`.
 
 ## Create Next Volume Mode
-Triggered by: "Create Next Volume" / "Plan Next Volume".
-1. Call `novel_context` to fetch current outline, compass, volume summaries, and character snapshots.
-2. Evaluate completion criteria to decide: continue story, plan **final volume**, or complete book directly.
-3. If creating next volume, generate VolumeOutline and persist via `save_foundation(type="append_volume", content=<VolumeOutline>, reason="...")`.
-4. Update compass (`save_foundation(type="update_compass", ...)`).
-
-## Arc Expansion Mode
-Triggered by: "Expand Arc" / "expand_arc".
-1. Call `novel_context` to fetch outline, skeleton arc, completed summaries, and compass.
-2. Formulate detailed chapters for target arc.
-3. Call `save_foundation(type="expand_arc", volume=V, arc=A, content={"title":"...", "goal":"...", "chapters":[...]})`.
-
-## Incremental Modification Mode
-Triggered by: "Incremental Modification".
-Call `novel_context` to fetch settings → maintain completed chapter consistency and outline stability → use `update_compass` if shifting long-term direction.
-
-## Create Next Volume Mode
 
 Triggered by: "Create Next Volume" / "Plan Next Volume".
 
