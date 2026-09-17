@@ -62,6 +62,9 @@ jobs:
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
     runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        shell: bash
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
@@ -76,13 +79,13 @@ jobs:
         if: runner.os == 'Linux'
         env:
           GOWORK: "off"
-        run: go test -v -race -coverprofile=coverage.txt -covermode=atomic -buildvcs=false -count=1 ./...
+        run: go test -v -race -coverprofile="coverage.txt" -covermode=atomic -buildvcs=false -count=1 ./...
 
       - name: Run Unit Tests (Windows / macOS)
         if: runner.os != 'Linux'
         env:
           GOWORK: "off"
-        run: go test -v -coverprofile=coverage.txt -covermode=atomic -buildvcs=false -count=1 ./...
+        run: go test -v -coverprofile="coverage.txt" -covermode=atomic -buildvcs=false -count=1 ./...
 
       - name: Race Test Concurrency & State Paths (Linux)
         if: runner.os == 'Linux'
