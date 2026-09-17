@@ -17,9 +17,9 @@ import (
 
 // StyleInfo chứa thông tin hiển thị của một bộ phong cách.
 type StyleInfo struct {
-	Name        string `json:"name"`        // Ví dụ: "cyberpunk", "xianxia", "mystery"
-	Source      string `json:"source"`      // "builtin", "global", "project"
-	Active      bool   `json:"active"`      // Có đang kích hoạt cho tác phẩm hiện tại không
+	Name        string `json:"name"`   // Ví dụ: "cyberpunk", "xianxia", "mystery"
+	Source      string `json:"source"` // "builtin", "global", "project"
+	Active      bool   `json:"active"` // Có đang kích hoạt cho tác phẩm hiện tại không
 	Description string `json:"description"`
 }
 

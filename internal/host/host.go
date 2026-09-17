@@ -2021,4 +2021,3 @@ func (h *Host) ExportCopyrightReport(primaryAuthor string) (string, error) {
 	}
 	return h.store.Authorship.GenerateCopyrightReport(bookTitle, primaryAuthor)
 }
-

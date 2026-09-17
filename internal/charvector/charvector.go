@@ -11,13 +11,13 @@ import (
 
 // RelationshipVector chứa các chỉ số quan hệ giữa hai nhân vật.
 type RelationshipVector struct {
-	CharA     string `json:"char_a"`
-	CharB     string `json:"char_b"`
-	Trust     int    `json:"trust"`    // -100 (Thù hằn) -> +100 (Tuyệt đối tin tưởng)
-	Tension   int    `json:"tension"`  // 0 (Bình yên) -> 100 (Căng thẳng cực độ)
-	Alliance  string `json:"alliance"` // "ally", "neutral", "rival", "enemy"
-	LastUpdateCh int `json:"last_update_ch"`
-	Note      string `json:"note"`
+	CharA        string `json:"char_a"`
+	CharB        string `json:"char_b"`
+	Trust        int    `json:"trust"`    // -100 (Thù hằn) -> +100 (Tuyệt đối tin tưởng)
+	Tension      int    `json:"tension"`  // 0 (Bình yên) -> 100 (Căng thẳng cực độ)
+	Alliance     string `json:"alliance"` // "ally", "neutral", "rival", "enemy"
+	LastUpdateCh int    `json:"last_update_ch"`
+	Note         string `json:"note"`
 }
 
 // Matrix chứa toàn bộ ma trận quan hệ nhân vật.

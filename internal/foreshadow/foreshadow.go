@@ -15,14 +15,14 @@ import (
 
 // Item đại diện cho một chi tiết phục bút hoặc bí ẩn được gài vào tác phẩm.
 type Item struct {
-	ID             string   `json:"id"`
-	ChapterPlanted int      `json:"chapter_planted"` // Chương bắt đầu gài phục bút
-	Description    string   `json:"description"`     // Chi tiết phục bút / manh mối
-	Category       string   `json:"category"`        // "mystery", "item_secret", "character_motive", "world_lore"
-	Resolved       bool     `json:"resolved"`
-	ChapterResolved int     `json:"chapter_resolved,omitempty"`
-	ResolutionNote string   `json:"resolution_note,omitempty"`
-	CreatedAt      string   `json:"created_at"`
+	ID              string `json:"id"`
+	ChapterPlanted  int    `json:"chapter_planted"` // Chương bắt đầu gài phục bút
+	Description     string `json:"description"`     // Chi tiết phục bút / manh mối
+	Category        string `json:"category"`        // "mystery", "item_secret", "character_motive", "world_lore"
+	Resolved        bool   `json:"resolved"`
+	ChapterResolved int    `json:"chapter_resolved,omitempty"`
+	ResolutionNote  string `json:"resolution_note,omitempty"`
+	CreatedAt       string `json:"created_at"`
 }
 
 // Matrix chứa toàn bộ danh sách phục bút.

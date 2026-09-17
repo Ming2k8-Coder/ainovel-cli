@@ -14,9 +14,9 @@ import (
 
 // ModelCandidate thông tin mô hình tham gia đấu trường.
 type ModelCandidate struct {
-	Name        string  `json:"name"`        // "claude-3-5-sonnet", "deepseek-chat", "gemini-1.5-pro"
-	Provider    string  `json:"provider"`    // "anthropic", "deepseek", "google", "openrouter"
-	Score       float64 `json:"score"`       // Điểm số tổng hợp 7 chiều (0 - 100)
+	Name        string  `json:"name"`     // "claude-3-5-sonnet", "deepseek-chat", "gemini-1.5-pro"
+	Provider    string  `json:"provider"` // "anthropic", "deepseek", "google", "openrouter"
+	Score       float64 `json:"score"`    // Điểm số tổng hợp 7 chiều (0 - 100)
 	WordCount   int     `json:"word_count"`
 	DurationMs  int64   `json:"duration_ms"`
 	DraftOutput string  `json:"draft_output"`

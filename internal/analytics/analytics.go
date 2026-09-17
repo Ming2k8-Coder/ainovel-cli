@@ -13,14 +13,14 @@ import (
 
 // Report chứa toàn bộ chỉ số thống kê của dự án.
 type Report struct {
-	BookTitle        string  `json:"book_title"`
-	TotalChapters    int     `json:"total_chapters"`
-	TotalWordCount   int     `json:"total_word_count"`
-	AvgWordsPerChapter int   `json:"avg_words_per_chapter"`
-	TotalTouchpoints int     `json:"total_touchpoints"`
-	HumanEffortRatio float64 `json:"human_effort_ratio"` // Tỷ lệ can thiệp nghệ thuật của con người
-	EstimatedTokens  int     `json:"estimated_tokens"`
-	EstimatedCostUSD float64 `json:"estimated_cost_usd"`
+	BookTitle          string  `json:"book_title"`
+	TotalChapters      int     `json:"total_chapters"`
+	TotalWordCount     int     `json:"total_word_count"`
+	AvgWordsPerChapter int     `json:"avg_words_per_chapter"`
+	TotalTouchpoints   int     `json:"total_touchpoints"`
+	HumanEffortRatio   float64 `json:"human_effort_ratio"` // Tỷ lệ can thiệp nghệ thuật của con người
+	EstimatedTokens    int     `json:"estimated_tokens"`
+	EstimatedCostUSD   float64 `json:"estimated_cost_usd"`
 }
 
 // GenerateReport tính toán toàn bộ chỉ số phân tích.

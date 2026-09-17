@@ -18,14 +18,14 @@ import (
 
 // AnalysisResult chứa kết quả phân tích một tác phẩm/đặc tả có sẵn.
 type AnalysisResult struct {
-	BookTitle        string            `json:"book_title"`
-	DetectedChapters int               `json:"detected_chapters"`
-	TotalWords       int               `json:"total_words"`
-	Characters       []string          `json:"characters"`
-	WorldLore        string            `json:"world_lore"`
-	ExtractedStyle   string            `json:"extracted_style"`
-	LastChapterNum   int               `json:"last_chapter_num"`
-	SummaryMap       map[int]string    `json:"summary_map"`
+	BookTitle        string         `json:"book_title"`
+	DetectedChapters int            `json:"detected_chapters"`
+	TotalWords       int            `json:"total_words"`
+	Characters       []string       `json:"characters"`
+	WorldLore        string         `json:"world_lore"`
+	ExtractedStyle   string         `json:"extracted_style"`
+	LastChapterNum   int            `json:"last_chapter_num"`
+	SummaryMap       map[int]string `json:"summary_map"`
 }
 
 // Analyzer thực hiện phân tích tác phẩm.

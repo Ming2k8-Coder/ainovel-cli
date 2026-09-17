@@ -217,7 +217,7 @@ func (l *Ledger) GenerateCopyrightReport(bookTitle, primaryAuthor string) (strin
 	fmt.Fprintf(&b, "> **Tác phẩm**: 《%s》\n", bookTitle)
 	fmt.Fprintf(&b, "> **Tác giả chủ quản**: %s\n", primaryAuthor)
 	fmt.Fprintf(&b, "> **Ngày xuất báo cáo**: %s\n", time.Now().Format("2006-01-02 15:04:05 MST"))
-	fmt.Fprintf(&b, "> **Tiêu chuẩn áp dụng**: US Copyright Office (Compendium III) / Công ước Bern / Luật SHTT Việt Nam\n\n", )
+	fmt.Fprintf(&b, "> **Tiêu chuẩn áp dụng**: US Copyright Office (Compendium III) / Công ước Bern / Luật SHTT Việt Nam\n\n")
 	fmt.Fprintf(&b, "---\n\n")
 
 	fmt.Fprintf(&b, "## 1. Tuyên Bố Quyền Tác Giả Của Con Người (Human Authorship Statement)\n\n")

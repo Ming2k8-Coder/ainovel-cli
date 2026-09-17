@@ -14,14 +14,14 @@ import (
 
 // ParadoxIssue chứa thông tin chi tiết về lỗi mâu thuẫn logic cốt truyện.
 type ParadoxIssue struct {
-	ID          string   `json:"id"`
-	Chapter     int      `json:"chapter"`
-	Type        string   `json:"type"`        // "timeline_conflict", "lore_violation", "out_of_character", "abandoned_foreshadow"
-	Severity    string   `json:"severity"`    // "critical", "major", "minor"
-	Description string   `json:"description"` // Mô tả chi tiết lỗ hổng
-	FixPlan     string   `json:"fix_plan"`    // Phương án sửa đổi kiến nghị
-	Status      string   `json:"status"`      // "open", "resolved", "ignored"
-	CreatedAt   string   `json:"created_at"`
+	ID          string `json:"id"`
+	Chapter     int    `json:"chapter"`
+	Type        string `json:"type"`        // "timeline_conflict", "lore_violation", "out_of_character", "abandoned_foreshadow"
+	Severity    string `json:"severity"`    // "critical", "major", "minor"
+	Description string `json:"description"` // Mô tả chi tiết lỗ hổng
+	FixPlan     string `json:"fix_plan"`    // Phương án sửa đổi kiến nghị
+	Status      string `json:"status"`      // "open", "resolved", "ignored"
+	CreatedAt   string `json:"created_at"`
 }
 
 // Manager quản lý việc phát hiện và khắc phục mâu thuẫn cốt truyện.

@@ -67,9 +67,17 @@ func Command(args []string) int {
 }
 
 func stringsToUpper(s string) string {
-	if s == "mystery" { return "BÍ ẨN" }
-	if s == "character_motive" { return "ĐỘNG CƠ NHÂN VẬT" }
-	if s == "item_secret" { return "BẢO VẬT/CÔNG NGHỆ" }
-	if s == "world_lore" { return "BỐI CẢNH THẾ GIỚI" }
+	if s == "mystery" {
+		return "BÍ ẨN"
+	}
+	if s == "character_motive" {
+		return "ĐỘNG CƠ NHÂN VẬT"
+	}
+	if s == "item_secret" {
+		return "BẢO VẬT/CÔNG NGHỆ"
+	}
+	if s == "world_lore" {
+		return "BỐI CẢNH THẾ GIỚI"
+	}
 	return s
 }

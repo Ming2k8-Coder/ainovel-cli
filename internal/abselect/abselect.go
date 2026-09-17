@@ -24,24 +24,24 @@ import (
 
 // Variant đại diện cho một phương án A hoặc B được tạo ra để người dùng lựa chọn.
 type Variant struct {
-	Key         string   `json:"key"`                   // "A" hoặc "B"
-	Title       string   `json:"title"`                 // Tên tóm tắt phương án
-	Description string   `json:"description"`           // Mô tả trọng tâm kịch bản/văn phong
-	Content     string   `json:"content"`               // Nội dung văn bản mẫu hoặc dàn ý
-	Traits      []string `json:"traits"`                // Các đặc trưng văn học (ví dụ: "dialogue_sharp", "fast_paced", "hard_scifi_detail")
-	Model       string   `json:"model,omitempty"`       // Tên mô hình tạo ra (nếu thử nghiệm đa mô hình)
+	Key         string   `json:"key"`             // "A" hoặc "B"
+	Title       string   `json:"title"`           // Tên tóm tắt phương án
+	Description string   `json:"description"`     // Mô tả trọng tâm kịch bản/văn phong
+	Content     string   `json:"content"`         // Nội dung văn bản mẫu hoặc dàn ý
+	Traits      []string `json:"traits"`          // Các đặc trưng văn học (ví dụ: "dialogue_sharp", "fast_paced", "hard_scifi_detail")
+	Model       string   `json:"model,omitempty"` // Tên mô hình tạo ra (nếu thử nghiệm đa mô hình)
 }
 
 // Choice lưu trữ quyết định lựa chọn của người dùng.
 type Choice struct {
-	ID         string    `json:"id"`
-	Chapter    int       `json:"chapter,omitempty"`
-	Scope      string    `json:"scope"`                 // "premise", "outline_arc", "chapter_draft", "dialogue_tone"
-	OptionA    Variant   `json:"option_a"`
-	OptionB    Variant   `json:"option_b"`
-	Selected   string    `json:"selected"`              // "A", "B", hoặc "custom"
-	UserReason string    `json:"user_reason,omitempty"` // Ghi chú ngắn của tác giả (tùy chọn)
-	Timestamp  string    `json:"timestamp"`
+	ID         string  `json:"id"`
+	Chapter    int     `json:"chapter,omitempty"`
+	Scope      string  `json:"scope"` // "premise", "outline_arc", "chapter_draft", "dialogue_tone"
+	OptionA    Variant `json:"option_a"`
+	OptionB    Variant `json:"option_b"`
+	Selected   string  `json:"selected"`              // "A", "B", hoặc "custom"
+	UserReason string  `json:"user_reason,omitempty"` // Ghi chú ngắn của tác giả (tùy chọn)
+	Timestamp  string  `json:"timestamp"`
 }
 
 // Manager quản lý việc lưu trữ, phân tích và phản hồi các lựa chọn A/B.
@@ -146,10 +146,10 @@ func (m *Manager) LoadChoices() ([]Choice, error) {
 
 // SynthesizedPromptFeedback chứa các quy tắc văn phong và sở thích được học tự động từ các lựa chọn A/B.
 type SynthesizedPromptFeedback struct {
-	PreferredTraits []string                  `json:"preferred_traits"`
-	AvoidedTraits   []string                  `json:"avoided_traits"`
-	ProseDirectives []string                  `json:"prose_directives"`
-	Taboos          []string                  `json:"taboos"`
+	PreferredTraits []string                   `json:"preferred_traits"`
+	AvoidedTraits   []string                   `json:"avoided_traits"`
+	ProseDirectives []string                   `json:"prose_directives"`
+	Taboos          []string                   `json:"taboos"`
 	AuthorStyle     domain.AuthorRevisionStyle `json:"author_style"`
 }
 

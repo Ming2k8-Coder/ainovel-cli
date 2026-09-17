@@ -18,18 +18,18 @@ type EntityEvent struct {
 	UniverseYear int    `json:"universe_year"` // Năm vũ trụ (ví dụ 1956, 2026, 2099)
 	SeriesName   string `json:"series_name"`   // Tên bộ truyện (ví dụ "HUST-sanbaka", "VNU-hivemind")
 	Chapter      int    `json:"chapter"`
-	Description  string `json:"description"`   // Mô tả biến cố / cột mốc
-	Location     string `json:"location"`      // Địa điểm xảy ra
+	Description  string `json:"description"` // Mô tả biến cố / cột mốc
+	Location     string `json:"location"`    // Địa điểm xảy ra
 }
 
 // EntityRecord vết lịch sử đầy đủ của 1 nhân vật / bảo vật trong toàn vũ trụ.
 type EntityRecord struct {
-	Name        string        `json:"name"`
-	Type        string        `json:"type"` // "character", "artifact", "faction", "cosmic_law"
-	OriginSeries string       `json:"origin_series"`
-	CurrentOwner string       `json:"current_owner,omitempty"`
-	Status      string        `json:"status"` // "active", "deceased", "sealed", "destroyed"
-	History     []EntityEvent `json:"history"`
+	Name         string        `json:"name"`
+	Type         string        `json:"type"` // "character", "artifact", "faction", "cosmic_law"
+	OriginSeries string        `json:"origin_series"`
+	CurrentOwner string        `json:"current_owner,omitempty"`
+	Status       string        `json:"status"` // "active", "deceased", "sealed", "destroyed"
+	History      []EntityEvent `json:"history"`
 }
 
 // CanonRule quy tắc định luật tối cao của vũ trụ (không bộ truyện nào được vi phạm).

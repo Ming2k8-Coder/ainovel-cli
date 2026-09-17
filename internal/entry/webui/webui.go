@@ -78,7 +78,9 @@ func Run(cfg bootstrap.Config, bundle assets.Bundle, opts Options) error {
 			"words":       words,
 			"merkle_root": merkle,
 			"advance_mode": func() string {
-				if runMeta != nil { return string(runMeta.AdvanceMode) }
+				if runMeta != nil {
+					return string(runMeta.AdvanceMode)
+				}
 				return "manual"
 			}(),
 		}
