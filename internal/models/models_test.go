@@ -87,12 +87,12 @@ func TestModelRegistry_MergeModels(t *testing.T) {
 	initialCount := len(reg.List(""))
 
 	newModel := ModelEntry{
-		Provider:       "custom-provider",
-		ID:             "super-model-v1",
-		Name:           "Super Model V1",
-		ContextWindow:  500_000,
-		MaxTokens:      16_384,
-		InputCostPer1M: 5.0,
+		Provider:        "custom-provider",
+		ID:              "super-model-v1",
+		Name:            "Super Model V1",
+		ContextWindow:   500_000,
+		MaxTokens:       16_384,
+		InputCostPer1M:  5.0,
 		OutputCostPer1M: 15.0,
 	}
 
@@ -108,9 +108,9 @@ func TestModelRegistry_MergeModels(t *testing.T) {
 
 	// Overwrite existing with updated pricing
 	updateModel := ModelEntry{
-		Provider:       "custom-provider",
-		ID:             "super-model-v1",
-		InputCostPer1M: 2.5,
+		Provider:        "custom-provider",
+		ID:              "super-model-v1",
+		InputCostPer1M:  2.5,
 		OutputCostPer1M: 7.5,
 	}
 	reg.MergeModels([]ModelEntry{updateModel})

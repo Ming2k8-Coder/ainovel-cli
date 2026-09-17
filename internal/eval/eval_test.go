@@ -54,4 +54,3 @@ func TestIssue10_MultiAgentEvaluationDelta(t *testing.T) {
 		t.Fatalf("expected words ratio > 1.0, got %f", delta.Metrics.TotalWordsRatio)
 	}
 }
-

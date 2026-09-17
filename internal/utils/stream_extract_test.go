@@ -70,7 +70,7 @@ func TestJSONFieldExtractor_UnicodeMultibyte(t *testing.T) {
 
 func TestStreamFilter_ThinkingAndToolCall(t *testing.T) {
 	filter := NewStreamFilter("content")
-	
+
 	// Thinking part
 	text1 := filter.Feed("Thinking about the plot...")
 	if !strings.HasPrefix(text1, ThinkingSep) {
@@ -128,4 +128,3 @@ func TestJSONFieldExtractor_UnicodeEscapeDocumentsLimitation(t *testing.T) {
 		t.Log("Note: JSONFieldExtractor currently passes raw \\u0031 without decoding to UTF-8 rune")
 	}
 }
-
