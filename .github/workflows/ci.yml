@@ -1,23 +1,26 @@
-name: CI
+name: CI/CD Pipeline
 
 on:
-  pull_request:
   push:
     branches:
       - main
+      - human-in-the-loop
+      - 'feat/**'
+  pull_request:
+    branches:
+      - main
+      - human-in-the-loop
+  workflow_dispatch:
 
 permissions:
   contents: read
 
 jobs:
-  test:
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [ubuntu-latest, windows-latest]
-    runs-on: ${{ matrix.os }}
+  lint:
+    name: Lint & Static Analysis
+    runs-on: ubuntu-latest
     steps:
-      - name: Checkout
+      - name: Checkout Code
         uses: actions/checkout@v4
 
       - name: Set up Go
@@ -26,26 +29,99 @@ jobs:
           go-version-file: go.mod
           cache: true
 
-      - name: Format check
+      - name: Verify Code Formatting (gofmt)
         shell: bash
-        run: test -z "$(gofmt -l .)"
+        run: |
+          UNFORMATTED=$(gofmt -l .)
+          if [ -n "$UNFORMATTED" ]; then
+            echo "The following files are not formatted properly:"
+            echo "$UNFORMATTED"
+            exit 1
+          fi
 
-      - name: Installer syntax check
-        if: runner.os == 'Linux'
-        run: sh -n scripts/install.sh
-
-      - name: Vet
+      - name: Go Vet Static Analysis
         env:
           GOWORK: "off"
         run: go vet ./...
 
-      - name: Test
-        env:
-          GOWORK: "off"
-        run: go test -buildvcs=false -count=1 ./...
+      - name: Shell Scripts Syntax Check
+        run: sh -n scripts/install.sh
 
-      - name: Race test critical state paths
+      - name: Run golangci-lint
+        uses: golangci/golangci-lint-action@v6
+        with:
+          version: latest
+          args: --timeout=5m
+        continue-on-error: true
+
+  test:
+    name: Unit Test (${{ matrix.os }})
+    needs: [lint]
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Run Unit Tests with Race Detection (Linux)
         if: runner.os == 'Linux'
         env:
           GOWORK: "off"
-        run: go test -race -buildvcs=false -count=1 ./internal/host ./internal/store ./internal/tools
+        run: go test -v -race -coverprofile=coverage.txt -covermode=atomic -buildvcs=false -count=1 ./...
+
+      - name: Run Unit Tests (Windows / macOS)
+        if: runner.os != 'Linux'
+        env:
+          GOWORK: "off"
+        run: go test -v -coverprofile=coverage.txt -covermode=atomic -buildvcs=false -count=1 ./...
+
+      - name: Race Test Concurrency & State Paths (Linux)
+        if: runner.os == 'Linux'
+        env:
+          GOWORK: "off"
+        run: go test -race -buildvcs=false -count=1 ./internal/host ./internal/store ./internal/tools ./internal/llmretry ./internal/flow
+
+      - name: Upload Coverage Report
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-${{ matrix.os }}
+          path: coverage.txt
+          if-no-files-found: ignore
+
+  build:
+    name: Build Binary (${{ matrix.os }})
+    needs: [test]
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Build ainovel-cli Binary
+        env:
+          GOWORK: "off"
+        run: go build -v -trimpath -o bin/ ./cmd/...
+
+      - name: Upload Binary Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ainovel-cli-${{ matrix.os }}
+          path: bin/
