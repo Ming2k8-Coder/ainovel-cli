@@ -97,31 +97,3 @@ jobs:
           path: coverage.txt
           if-no-files-found: ignore
 
-  build:
-    name: Build Binary (${{ matrix.os }})
-    needs: [test]
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [ubuntu-latest, windows-latest]
-    runs-on: ${{ matrix.os }}
-    steps:
-      - name: Checkout Code
-        uses: actions/checkout@v4
-
-      - name: Set up Go
-        uses: actions/setup-go@v5
-        with:
-          go-version-file: go.mod
-          cache: true
-
-      - name: Build ainovel-cli Binary
-        env:
-          GOWORK: "off"
-        run: go build -v -trimpath -o bin/ ./cmd/...
-
-      - name: Upload Binary Artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: ainovel-cli-${{ matrix.os }}
-          path: bin/
