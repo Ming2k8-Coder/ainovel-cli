@@ -8,12 +8,28 @@ import (
 	"strings"
 
 	"github.com/voocel/ainovel-cli/assets"
+	"github.com/voocel/ainovel-cli/internal/abselect"
+	"github.com/voocel/ainovel-cli/internal/analytics"
+	"github.com/voocel/ainovel-cli/internal/arena"
+	"github.com/voocel/ainovel-cli/internal/authorship"
 	"github.com/voocel/ainovel-cli/internal/bootstrap"
+	"github.com/voocel/ainovel-cli/internal/charvector"
+	"github.com/voocel/ainovel-cli/internal/cryptoaudit"
 	"github.com/voocel/ainovel-cli/internal/entry/headless"
 	"github.com/voocel/ainovel-cli/internal/entry/startup"
 	"github.com/voocel/ainovel-cli/internal/entry/tui"
+	"github.com/voocel/ainovel-cli/internal/entry/webui"
 	"github.com/voocel/ainovel-cli/internal/eval"
+	"github.com/voocel/ainovel-cli/internal/foreshadow"
+	"github.com/voocel/ainovel-cli/internal/gitmgr"
+	"github.com/voocel/ainovel-cli/internal/nlcommander"
+	"github.com/voocel/ainovel-cli/internal/novelanalyzer"
+	"github.com/voocel/ainovel-cli/internal/publisher"
+	"github.com/voocel/ainovel-cli/internal/resolver"
 	"github.com/voocel/ainovel-cli/internal/rules"
+	"github.com/voocel/ainovel-cli/internal/server"
+	"github.com/voocel/ainovel-cli/internal/stylepreset"
+	"github.com/voocel/ainovel-cli/internal/universe"
 	buildversion "github.com/voocel/ainovel-cli/internal/version"
 )
 
@@ -27,9 +43,44 @@ var (
 var headlessMode bool
 
 func main() {
-	// Lệnh con (subcommand) được chặn trước khi phân tích cờ (flag) thông thường: eval là công cụ đánh giá ngoại tuyến độc lập.
-	if len(os.Args) > 1 && os.Args[1] == "eval" {
-		os.Exit(eval.Command(os.Args[2:]))
+	// Lệnh con (subcommand) được chặn trước khi phân tích cờ (flag) thông thường:
+	if len(os.Args) > 1 {
+		switch os.Args[1] {
+		case "eval":
+			os.Exit(eval.Command(os.Args[2:]))
+		case "copyright", "authorship":
+			os.Exit(authorship.Command(os.Args[2:]))
+		case "ab-feedback", "ab-select":
+			os.Exit(abselect.Command(os.Args[2:]))
+		case "audit-proof", "merkle-proof":
+			os.Exit(cryptoaudit.Command(os.Args[2:]))
+		case "publish", "export-mdx":
+			os.Exit(publisher.Command(os.Args[2:]))
+		case "serve", "reader":
+			os.Exit(server.Command(os.Args[2:]))
+		case "foreshadow", "mysteries":
+			os.Exit(foreshadow.Command(os.Args[2:]))
+		case "char-matrix", "char-vector":
+			os.Exit(charvector.Command(os.Args[2:]))
+		case "stats", "analytics":
+			os.Exit(analytics.Command(os.Args[2:]))
+		case "git":
+			os.Exit(gitmgr.Command(os.Args[2:]))
+		case "webui", "dashboard":
+			os.Exit(webui.Command(os.Args[2:]))
+		case "style", "styles":
+			os.Exit(stylepreset.Command(os.Args[2:]))
+		case "continue", "analyze":
+			os.Exit(novelanalyzer.Command(os.Args[2:]))
+		case "cmd", "do":
+			os.Exit(nlcommander.Command(os.Args[2:]))
+		case "universe", "mcu":
+			os.Exit(universe.Command(os.Args[2:]))
+		case "resolve", "fix-logic":
+			os.Exit(resolver.Command(os.Args[2:]))
+		case "arena", "benchmark":
+			os.Exit(arena.Command(os.Args[2:]))
+		}
 	}
 
 	opts, args, err := parseCLIOptions(os.Args[1:])

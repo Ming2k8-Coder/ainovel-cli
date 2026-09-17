@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"sync"
 
+	"github.com/voocel/ainovel-cli/internal/authorship"
 	"github.com/voocel/ainovel-cli/internal/domain"
 	"github.com/voocel/ainovel-cli/internal/errs"
 )
@@ -34,6 +35,7 @@ type Store struct {
 	Decisions      *DecisionStore
 	ChapterRecords *ChapterRecordStore
 	Revisions      *RevisionStore
+	Authorship     *authorship.Ledger
 
 	crossMu sync.Mutex // 串行化跨域协调；不代表多个文件具备事务原子性
 }
@@ -73,6 +75,7 @@ func NewStore(dir string) *Store {
 		Decisions:      NewDecisionStore(newIO(dir)),
 		ChapterRecords: NewChapterRecordStore(newIO(dir)),
 		Revisions:      NewRevisionStore(newIO(dir)),
+		Authorship:     authorship.NewLedger(dir),
 	}
 }
 
