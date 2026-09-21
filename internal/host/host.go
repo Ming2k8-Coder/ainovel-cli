@@ -32,6 +32,7 @@ import (
 	storepkg "github.com/voocel/ainovel-cli/internal/store"
 	"github.com/voocel/ainovel-cli/internal/tools"
 	"github.com/voocel/ainovel-cli/internal/userrules"
+	"github.com/voocel/ainovel-cli/internal/utils"
 )
 
 // Host 是运行时外壳:生命周期/干预入口/事件投影/模型管理。
@@ -1215,7 +1216,7 @@ func (h *Host) Snapshot() UISnapshot {
 
 	if book, _ := h.store.Book.Load(); book != nil {
 		snap.BookTitle = book.Title
-		snap.Synopsis = truncate(book.Synopsis, 200)
+		snap.Synopsis = utils.TruncateRunes(book.Synopsis, 200)
 	}
 	progress, _ := h.store.Progress.Load()
 	if progress != nil {
@@ -1259,7 +1260,7 @@ func (h *Host) Snapshot() UISnapshot {
 // fillDetails 填充详情区:设定、角色、最近 commit/review/摘要。
 func (h *Host) fillDetails(snap *UISnapshot, progress *domain.Progress) {
 	if premise, _ := h.store.Outline.LoadPremise(); premise != "" {
-		snap.Premise = truncate(premise, 80)
+		snap.Premise = utils.TruncateRunes(premise, 80)
 	}
 	if outline, _ := h.store.Outline.LoadOutline(); len(outline) > 0 {
 		completed := make(map[int]struct{})
@@ -1345,7 +1346,7 @@ func (h *Host) fillDetails(snap *UISnapshot, progress *domain.Progress) {
 			ch := progress.CompletedChapters[i]
 			if summary, err := h.store.Summaries.LoadSummary(ch); err == nil && summary != nil {
 				snap.RecentSummaries = append(snap.RecentSummaries,
-					fmt.Sprintf("第%d章: %s", ch, truncate(summary.Summary, 50)))
+					fmt.Sprintf("第%d章: %s", ch, utils.TruncateRunes(summary.Summary, 50)))
 			}
 		}
 	}
@@ -1692,14 +1693,6 @@ func (h *Host) requireCleanChapters() error {
 		return fmt.Errorf("检测到章节正文已被外部修改：%v；请先执行 /sync", chapters)
 	}
 	return nil
-}
-
-func truncate(s string, maxRunes int) string {
-	runes := []rune(s)
-	if len(runes) <= maxRunes {
-		return s
-	}
-	return string(runes[:maxRunes]) + "..."
 }
 
 // ImportFrom 启动一次外部小说语义编译导入：ingest → segment → analyze → synthesize → publish。
