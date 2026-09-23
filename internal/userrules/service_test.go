@@ -93,8 +93,8 @@ func TestService_AddRuntimeRule_PersistsAndReturnsCandidate(t *testing.T) {
 	}
 }
 
-// alwaysRetryableModel 恒返回 retryable 错误：llmretry 会一直退避重试，
-// 只有 context 能终止它——这正是 issue #125 的卡死形态。
+// alwaysRetryableModel luôn trả về lỗi retryable: llmretry sẽ liên tục backoff retry,
+// chỉ có context mới có thể ngắt nó——đây chính là hình thái treo tiến trình của issue #125.
 type alwaysRetryableModel struct{ scriptedModel }
 
 func (m *alwaysRetryableModel) Generate(context.Context, []agentcore.Message, []agentcore.ToolSpec, ...agentcore.CallOption) (*agentcore.LLMResponse, error) {
@@ -102,8 +102,8 @@ func (m *alwaysRetryableModel) Generate(context.Context, []agentcore.Message, []
 	return nil, retryableTestError{}
 }
 
-// issue #125 回归：provider 持续限流/不可用时，Build 必须由 context 终止并降级，
-// 不得无限重试卡死开书流程。
+// Kiểm tra hồi quy issue #125: khi provider liên tục bị rate limit/không khả dụng, Build phải bị hủy bởi context và hạ cấp,
+// không được retry vô hạn gây treo quy trình tạo sách.
 func TestService_BuildStopsAtContextDeadline(t *testing.T) {
 	st := store.NewStore(t.TempDir())
 	svc := NewService(st, &alwaysRetryableModel{}, rules.LoadOptions{})
@@ -117,22 +117,22 @@ func TestService_BuildStopsAtContextDeadline(t *testing.T) {
 	}
 	done := make(chan result, 1)
 	go func() {
-		snap, err := svc.Build(ctx, "每章1200字，主角冷静克制")
+		snap, err := svc.Build(ctx, "Mỗi chương 1200 chữ, nhân vật chính điềm tĩnh kiềm chế")
 		done <- result{snap, err}
 	}()
 
 	select {
 	case got := <-done:
 		if got.err != nil {
-			t.Fatalf("超时应降级而非阻断开书：%v", got.err)
+			t.Fatalf("quá thời gian phải hạ cấp chứ không được chặn tạo sách: %v", got.err)
 		}
 		if got.snap.Status != rules.StatusDegraded {
-			t.Fatalf("归一化超时应降级，status=%q", got.snap.Status)
+			t.Fatalf("quá thời gian chuẩn hoá phải hạ cấp, status=%q", got.snap.Status)
 		}
 		if got.snap.Preferences == "" {
-			t.Fatal("降级应保留启动 prompt 原文")
+			t.Fatal("hạ cấp phải giữ nguyên văn prompt khởi động ban đầu")
 		}
 	case <-time.After(5 * time.Second):
-		t.Fatal("Build 未受 context 约束，已卡死（issue #125）")
+		t.Fatal("Build không bị giới hạn bởi context, đã bị treo (issue #125)")
 	}
 }
