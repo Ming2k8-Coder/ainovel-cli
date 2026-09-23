@@ -81,11 +81,6 @@ func (s *Server) handleAPIInfo(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) handleAPIChapters(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
-	progress, err := s.store.Progress.Load()
-	if err != nil || progress == nil {
-		_ = json.NewEncoder(w).Encode([]any{})
-		return
-	}
 
 	type ChapterItem struct {
 		Chapter   int    `json:"chapter"`
@@ -95,27 +90,53 @@ func (s *Server) handleAPIChapters(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var items []ChapterItem
-	for _, ch := range progress.CompletedChapters {
-		content, _, err := s.store.Drafts.LoadChapterContent(ch)
-		if err != nil {
-			continue
-		}
-		summary, _ := s.store.Summaries.LoadSummary(ch)
-		title := fmt.Sprintf("Chương %d", ch)
-		sumText := ""
-		if summary != nil {
-			if summary.Title != "" {
-				title = fmt.Sprintf("Chương %d: %s", ch, summary.Title)
+	progress, err := s.store.Progress.Load()
+	if err == nil && progress != nil && len(progress.CompletedChapters) > 0 {
+		for _, ch := range progress.CompletedChapters {
+			content, _, err := s.store.Drafts.LoadChapterContent(ch)
+			if err != nil {
+				continue
 			}
-			sumText = summary.Summary
-		}
+			summary, _ := s.store.Summaries.LoadSummary(ch)
+			title := fmt.Sprintf("Chương %d", ch)
+			sumText := ""
+			if summary != nil {
+				if summary.Title != "" {
+					title = fmt.Sprintf("Chương %d: %s", ch, summary.Title)
+				}
+				sumText = summary.Summary
+			}
 
-		items = append(items, ChapterItem{
-			Chapter:   ch,
-			Title:     title,
-			WordCount: len([]rune(content)),
-			Summary:   sumText,
-		})
+			items = append(items, ChapterItem{
+				Chapter:   ch,
+				Title:     title,
+				WordCount: len([]rune(content)),
+				Summary:   sumText,
+			})
+		}
+	} else {
+		// Quét trực tiếp thư mục chapters/ nếu là tệp Markdown/MDX
+		chDir := filepath.Join(s.dir, "chapters")
+		if entries, err := os.ReadDir(chDir); err == nil {
+			for idx, e := range entries {
+				if e.IsDir() || (!strings.HasSuffix(e.Name(), ".md") && !strings.HasSuffix(e.Name(), ".mdx")) {
+					continue
+				}
+				data, err := os.ReadFile(filepath.Join(chDir, e.Name()))
+				if err != nil {
+					continue
+				}
+				chNum := idx + 1
+				strContent := string(data)
+				title := strings.TrimSuffix(e.Name(), filepath.Ext(e.Name()))
+				items = append(items, ChapterItem{
+					Chapter:   chNum,
+					Title:     title,
+					WordCount: len([]rune(strContent)),
+					Summary:   "Bản thảo từ kho dữ liệu " + e.Name(),
+				})
+			}
+		}
 	}
 
 	_ = json.NewEncoder(w).Encode(items)
@@ -135,7 +156,27 @@ func (s *Server) handleAPIChapterDetail(w http.ResponseWriter, r *http.Request) 
 	}
 
 	content, _, err := s.store.Drafts.LoadChapterContent(chNum)
-	if err != nil {
+	if err != nil || strings.TrimSpace(content) == "" {
+		// Thử đọc từ thư mục chapters/
+		chDir := filepath.Join(s.dir, "chapters")
+		if entries, readErr := os.ReadDir(chDir); readErr == nil {
+			chIdx := 1
+			for _, e := range entries {
+				if e.IsDir() || (!strings.HasSuffix(e.Name(), ".md") && !strings.HasSuffix(e.Name(), ".mdx")) {
+					continue
+				}
+				if chIdx == chNum {
+					if data, err := os.ReadFile(filepath.Join(chDir, e.Name())); err == nil {
+						content = string(data)
+						break
+					}
+				}
+				chIdx++
+			}
+		}
+	}
+
+	if strings.TrimSpace(content) == "" {
 		http.Error(w, "chapter not found", http.StatusNotFound)
 		return
 	}
